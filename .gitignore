@@ -1,0 +1,47 @@
+# ==========================================
+# Git Ignore - Apenas PRD.md e Notebook
+# ==========================================
+
+# 1. Datasets pesados e arquivos de dados
+archive/
+*.csv
+*.tsv
+*.zip
+*.tar.gz
+
+# 2. Ambiente Python e Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.uv/
+
+# 3. Checkpoints do Jupyter
+.ipynb_checkpoints/
+
+# 4. Scripts e arquivos auxiliares
+gerar_figuras_eda.py
+figuras/
+estrutura-eda.md
+tema.png
+*.png
+*.jpg
+*.jpeg
+
+# 5. Arquivos de compilação do LaTeX
+relatorio_eda.tex
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.pdf
+
+# 6. Configurações de IDE e SO
+.DS_Store
+.vscode/
+.idea/
