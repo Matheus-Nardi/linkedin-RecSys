@@ -45,3 +45,5 @@ relatorio_eda.tex
 .DS_Store
 .vscode/
 .idea/
+
+.agents/
