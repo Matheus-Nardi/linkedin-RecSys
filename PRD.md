@@ -24,7 +24,7 @@
 
 ## 3. Hipóteses e Perguntas da EDA (Etapa Atual)
 
-A análise exploratória avalia 4 hipóteses estratégicas (2 confirmatórias e 2 contra-intuitivas):
+A análise exploratória avalia 5 hipóteses estratégicas (3 confirmatórias e 2 contra-intuitivas):
 
 1. **Hipótese 1 ($H_1$) -- Preferência por Trabalho Remoto (Confirmada):**
    * *Pergunta:* As pessoas se candidatam mais para vagas remotas do que para vagas presenciais?
@@ -45,6 +45,11 @@ A análise exploratória avalia 4 hipóteses estratégicas (2 confirmatórias e 
    * *Pergunta:* Megacorporações multinacionais pagam os maiores salários médios do mercado?
    * *Hipótese de Senso Comum:* Quanto maior o porte da empresa (`company_size`), maior é a remuneração média oferecida.
    * *Achado:* **Refutada.** Empresas de médio porte e startups de tecnologia (Porte 2 a 3) apresentam salários medianos superiores (\$90.000 vs. \$73.840 nas gigantes de Porte 7), pois grandes corporações possuem contingente massivo de cargos operacionais.
+
+5. **Hipótese 5 ($H_5$) -- Fatores Determinantes da Transparência Salarial (Confirmada):**
+   * *Pergunta:* Vagas remotas e níveis plenos/corporativos divulgam mais o salário do que vagas presenciais ou cargos de entrada?
+   * *Hipótese:* Vagas remotas (31,90% vs. 28,74%) e posições de nível Pleno/Associate (39,60%) e Diretoria (33,85%) apresentam maior taxa de transparência salarial (`is_salary_disclosed`) do que vagas de nível júnior/estágio (24,86%).
+   * *Achado:* **Confirmada.** O trabalho remoto e cargos com maior competitividade de contratação abrem o salário com maior frequência para atrair candidatos qualificados.
 
 ---
 

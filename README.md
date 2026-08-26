@@ -1,57 +1,105 @@
 # 💼 Sistema de Recomendação de Vagas e Habilidades (LinkedIn)
 
-Projeto desenvolvido para a disciplina de **Tópicos em Sistemas de Recomendação** da **Universidade Estadual do Tocantins (UNITINS)**.
+Projeto desenvolvido para a disciplina de **Tópicos em Sistemas de Recomendação** do curso de Sistemas de Informação da **Universidade Estadual do Tocantins (UNITINS)**.
 
-O objetivo do projeto é construir, ao longo do semestre, uma pipeline completa de recomendação voltada para a área de **Redes Profissionais e Mercado de Trabalho**, utilizando dados reais da plataforma LinkedIn.
+O objetivo deste projeto é construir uma pipeline completa de recomendação voltada para **Mercado de Trabalho e Carreiras**, utilizando dados reais da plataforma LinkedIn.
 
 ---
 
-## 📌 Etapa Atual: Análise Exploratória de Dados (EDA)
+## 📌 Visão Geral das Etapas
 
-Na etapa inicial do projeto, realizamos uma investigação minuciosa sobre a base **LinkedIn Job Postings (2023 - 2024)** (com mais de 123 mil anúncios reais coletados via Kaggle), avaliando o comportamento das variáveis de remuneração, modalidades de trabalho, senioridade e porte das empresas contratantes.
-
-### 🎯 Hipóteses de Pesquisa Avaliadas
+### 1. Análise Exploratória de Dados (EDA) & Resolução de Hipóteses
+Investigação sobre a base **LinkedIn Job Postings (2023 - 2024)** (mais de 123 mil vagas reais via Kaggle), avaliando remuneração, trabalho remoto, senioridade, CTR e transparência de mercado.
 
 | Hipótese | Senso Comum / Expectativa Inicial | Realidade Observada nos Dados | Veredito |
 | :--- | :--- | :--- | :---: |
 | **$H_1$: Candidaturas por Modalidade** | Vagas remotas recebem mais candidaturas. | Vagas remotas atraem mais que o dobro de candidatos (média de 44,6 vs. 20,4). | **Confirmada** ✅ |
-| **$H_2$: Experiência vs. Salário** | Níveis mais altos de senioridade pagam salários maiores. | A média salarial de nível Sênior (\$118.900) supera com folga o dobro de Júnior (\$58.300). | **Confirmada** ✅ |
-| **$H_3$: Salário Remoto vs. Presencial** | *"Vagas presenciais pagam mais para compensar custos de deslocamento e moradia."* | **Vagas remotas pagam 45% a mais em mediana** (\$112.500 vs. \$77.500) devido à concorrência global por talentos. | **Refutada** ❌ |
-| **$H_4$: Porte da Empresa vs. Salário** | *"Grandes corporações (mais de 10.000 funcionários) pagam os maiores salários médios."* | **Empresas de médio porte e startups de tecnologia pagam mais** (\$90.000 vs. \$73.840 nas gigantes), devido ao grande contingente operacional das corporações. | **Refutada** ❌ |
+| **$H_2$: Experiência vs. Salário** | Níveis mais altos de senioridade pagam salários maiores. | A média salarial de nível Sênior (\$118.900) supera o dobro de Júnior (\$58.300). | **Confirmada** ✅ |
+| **$H_3$: Salário Remoto vs. Presencial** | *"Vagas presenciais pagam mais para compensar custos de deslocamento."* | **Vagas remotas pagam 45% a mais em mediana** (\$112.500 vs. \$77.500), competindo por talentos globais. | **Refutada** ❌ |
+| **$H_4$: Porte da Empresa vs. Salário** | *"Grandes corporações (mais de 5.000 funcionários) pagam os maiores salários médios."* | **Empresas de médio porte e startups pagam mais** (\$90.000 vs. \$73.840 nas gigantes), devido ao perfil mais técnico. | **Refutada** ❌ |
+| **$H_5$: Transparência Salarial** | Salários são divulgados aleatoriamente. | Vagas remotas (31,9%) e posições plenas (39,6%) lideram a abertura de salários; vagas de entrada são mais opacas (24,8%). Fenômeno MNAR. | **Confirmada** ✅ |
+
+> 🔬 **Prudência Epistemológica & Rigor Científico:** Todas as análises respeitam a distinção entre correlação e causalidade. Insights de negócio são formulados como hipóteses plausíveis orientadas a dados.
+
+---
+
+### 2. Filtragem Baseada em Conteúdo (*Content-Based Filtering - CBF*)
+* **Vetorização de Itens:** Representação textual combinando títulos com peso duplicado, competências e nível de senioridade (`(title * 2) + skills + experience_level`), vetorizada via **TF-IDF** ($N$-gramas 1 e 2).
+* **Perfil do Usuário (+ / -):** Vetor ponderado considerando o feedback implícito/explícito:
+  $$\vec{u} = \alpha \sum_{i \in I^+} \vec{v}_i - \beta \sum_{j \in I^-} \vec{v}_j$$
+* **Ranqueamento:** Similaridade do Cosseno modulada pela taxa de conversão empírica da vaga ($\text{CTR} = \frac{\text{applies}}{\text{views}}$).
 
 ---
 
 ## 📂 Estrutura do Repositório
 
 ```text
-├── eda_linkedin.ipynb   # Notebook Jupyter com a EDA completa e visualizações
-├── PRD.md               # Documento de Requisitos do Produto (visão geral e arquitetura)
-├── README.md            # Visão geral do projeto e instruções de execução
-└── .gitignore           # Configuração de arquivos ignorados no versionamento
+├── cbf_recomendacao.ipynb  # Laboratório didático da Filtragem Baseada em Conteúdo (TF-IDF e Perfil)
+├── eda_linkedin.ipynb      # Notebook com a Análise Exploratória de Dados completa
+├── dashboard.py            # Aplicação web interativa (Streamlit) com simulador de recomendação
+├── recomendador.py         # Módulo Python reutilizável com o motor da classe RecSysCBF
+├── gerar_figuras_eda.py    # Script automatizado para geração dos gráficos de alta resolução
+├── relatorio_eda.tex       # Relatório científico acadêmico em LaTeX
+├── requirements.txt        # Dependências do projeto Python
+├── Dockerfile              # Configuração do ambiente isolado em container Docker
+├── Makefile                # Automação de comandos para execução local sem poluição do sistema
+├── PRD.md                  # Product Requirements Document com a arquitetura do RecSys
+└── README.md               # Documentação principal do projeto
 ```
 
 ---
 
-## 🚀 Como Executar o Notebook
+## 🐳 Execução com Docker & Makefile (Recomendado)
 
-### Opção 1: Google Colab (Recomendada)
-1. Abra o arquivo [`eda_linkedin.ipynb`](eda_linkedin.ipynb) diretamente com a extensão do Google Colab no VS Code ou no navegador.
-2. Execute as células sequencialmente. O download do dataset será realizado de forma automática e rápida via `kagglehub` diretamente na nuvem do Colab.
+O projeto está totalmente dockerizado para garantir compatibilidade e isolamento (ideal para distribuições baseadas em Arch/Manjaro com PEP 668, Ubuntu ou macOS), sem necessidade de instalar dependências globais no sistema.
 
-### Opção 2: Ambiente Local
-Certifique-se de ter as bibliotecas necessárias instaladas:
+### 1. Construir a imagem Docker (apenas uma vez)
 ```bash
-pip install pandas matplotlib seaborn kagglehub
+make build
 ```
-Abra o Jupyter Notebook ou VS Code e execute o arquivo [`eda_linkedin.ipynb`](eda_linkedin.ipynb).
+
+### 2. Iniciar o Dashboard Interativo (Streamlit)
+```bash
+make dashboard
+```
+Acesse no navegador: **[http://localhost:8501](http://localhost:8501)**
+
+### 3. Iniciar o Jupyter Lab isolado (para rodar os Notebooks)
+```bash
+make jupyter
+```
+Acesse no navegador: **[http://localhost:8888](http://localhost:8888)**
+
+### 4. Outros Comandos Disponíveis
+
+| Comando | Descrição |
+| :--- | :--- |
+| `make help` | Lista todos os comandos documentados |
+| `make figuras` | Executa o script de geração das figuras da EDA |
+| `make shell` | Abre um terminal `bash` interativo dentro do container |
+| `make clean` | Remove arquivos de cache (`__pycache__`, `.pyc`) |
 
 ---
 
-## 🗺️ Próximas Etapas da Pipeline de Recomendação
+## ☁️ Execução Alternativa (Google Colab / Local Tradicional)
 
-Ao longo do semestre, as seguintes etapas serão desenvolvidas:
+### Google Colab
+1. Abra os notebooks [`eda_linkedin.ipynb`](eda_linkedin.ipynb) ou [`cbf_recomendacao.ipynb`](cbf_recomendacao.ipynb) no Google Colab.
+2. Execute as células sequencialmente. O download dos datasets e a execução ocorrerão diretamente na nuvem.
 
-1. **Filtragem Baseada em Conteúdo (*Content-Based Filtering*):** Casamento entre o perfil/skills do candidato e os requisitos textuais da vaga (TF-IDF, Embeddings e Similaridade de Cosseno).
-2. **Filtragem Colaborativa (*Collaborative Filtering*):** Identificação de padrões de candidatura e preferências compartilhadas entre profissionais similares.
-3. **Modelos Híbridos e Fatoração de Matrizes:** Combinação de metadados e feedback implícito de candidaturas.
-4. **Métricas de Avaliação de Ranking:** Avaliação da qualidade das recomendações (NDCG@K, Precision@K, MAP e Cobertura de Catálogo).
+### Ambiente Local com Virtualenv (Opcional)
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run dashboard.py
+```
+
+---
+
+## 🛡️ Conformidade e Aspectos Éticos (LGPD)
+
+O projeto opera em conformidade com a **Lei Geral de Proteção de Dados (Lei nº 13.709/2018)**:
+* **Dados Públicos de PJ:** Utiliza estritamente dados de anúncios públicos corporativos de vagas de emprego.
+* **Ausência de Dados Sensíveis:** Não há coleta ou armazenamento de dados biográficos, documentos ou informações pessoais de candidatos físicos.
+* **Finalidade Acadêmica:** Finalidade restrita a ensino, pesquisa e validação algorítmica de Sistemas de Recomendação.
