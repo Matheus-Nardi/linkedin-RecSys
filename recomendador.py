@@ -64,7 +64,7 @@ class RecSysCBF:
         
         return self
 
-    def build_user_profile(self, positive_indices, negative_indices, alpha=1.0, beta=0.5):
+    def build_user_profile(self, positive_indices, negative_indices, custom_text="", alpha=1.0, beta=0.5, gamma=1.0):
         """
         Constrói o vetor numérico do usuário
         """
@@ -77,6 +77,10 @@ class RecSysCBF:
         if negative_indices:
             negative_vectors = self.matrix[negative_indices]
             user_vector -= beta * np.asarray(negative_vectors.sum(axis=0))
+
+        if custom_text and custom_text.strip():
+            text_vector = self.tfidf.transform([custom_text.lower()])
+            user_vector += gamma * np.asarray(text_vector.todense())
             
         if np.linalg.norm(user_vector) > 0:
             user_vector = user_vector / np.linalg.norm(user_vector)

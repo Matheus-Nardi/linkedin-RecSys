@@ -74,6 +74,14 @@ with tab2:
         
     st.markdown("---")
     
+    st.subheader("💡 Suas Habilidades e Interesses (Cold Start)")
+    custom_skills = st.text_input(
+        "Digite competências, ferramentas ou cargo desejado (ex: Python, Machine Learning, React, AWS, Data Scientist):",
+        placeholder="Ex: Python, SQL, Docker, React"
+    )
+    
+    st.markdown("---")
+    
     col_f1, col_f2 = st.columns(2)
     with col_f1:
         remote_only = st.checkbox("Exigir apenas Vagas Remotas?")
@@ -81,15 +89,22 @@ with tab2:
         top_n = st.slider("Quantas recomendações?", 5, 20, 10)
         
     if st.button("Gerar Recomendações", type="primary"):
-        if not liked_selections:
-            st.warning("Selecione pelo menos uma vaga curtida para criar seu perfil!")
+        if not liked_selections and not custom_skills.strip():
+            st.warning("Selecione pelo menos uma vaga curtida OU digite suas habilidades/cargo para criar seu perfil!")
         else:
             # Pega os indices
             pos_idx = [ui_to_idx[x] for x in liked_selections]
             neg_idx = [ui_to_idx[x] for x in disliked_selections]
             
             # Gera perfil
-            user_profile = recsys.build_user_profile(pos_idx, neg_idx, alpha=1.0, beta=1.0)
+            user_profile = recsys.build_user_profile(
+                positive_indices=pos_idx, 
+                negative_indices=neg_idx, 
+                custom_text=custom_skills,
+                alpha=1.0, 
+                beta=1.0,
+                gamma=1.0
+            )
             
             # Recomenda
             recs = recsys.recommend(user_profile, top_n=top_n, remote_only=remote_only)
