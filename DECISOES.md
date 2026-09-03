@@ -185,11 +185,46 @@ Resultado da execução final (dados v3, 602.216 interações, split 80/20):
 
 ---
 
+## 🧩 Parte D — Integração da CF no Dashboard (etapa final)
+
+### Decisão D1: Nova aba "Filtragem Colaborativa (SVD)" com perfil aprendido
+
+| | |
+|---|---|
+| **O que era** | O dashboard tinha apenas EDA + Simulador CBF; a CF existia só nos scripts/notebooks |
+| **O que é agora** | Aba dedicada em que o usuário seleciona um dos 5.000 usuários sintéticos e vê (1) o **perfil aprendido** (mistura de personas, Decisão A5), (2) o **histórico de interações** que gerou o aprendizado, (3) as **previsões SVD** Top-N e (4) a **explicabilidade** da predição |
+| **Por quê** | Atende ao roteiro da disciplina (Identificação do aprendizado → Escolha do algoritmo → Vetorização → Similaridade → Previsão) dentro do painel, evidenciando que o perfil da CF é **aprendido do histórico**, em contraste com o perfil **declarado/construído** da CBF |
+| **Consequência** | O painel agora demonstra a pipeline completa: dados sintéticos → modelagem → métricas → aplicação interativa |
+
+### Decisão D2: Explicabilidade da predição (μ + b_u + b_i + q_iᵀp_u)
+
+| | |
+|---|---|
+| **O que é** | Expander na aba CF que decompõe a nota prevista de cada recomendação em média global, viés do usuário, viés da vaga e match latente persona×vaga |
+| **Por quê** | Fatoração matricial é caixa-preta para leigo; a decomposição conecta cada número da previsão ao conceito da aula e serve de argumento de defesa |
+| **Consequência** | Transparência didática sem custo computacional (os componentes já existem no modelo) |
+
+### Decisão D3: Aba "Comparativo CBF × CF" com as métricas da avaliação
+
+| | |
+|---|---|
+| **O que é** | Tabela qualitativa (sinal usado, cold-start, serendipidade) + métricas exportadas por `executar_modelagem.py` (RMSE, Precision@10, NDCG@10 de SVD/KNN/baselines) |
+| **Por quê** | Fechar o ciclo "gerar → modelar → metrificar → aplicar": as métricas que provaram a qualidade do SVD passam a fazer parte da entrega visual |
+| **Consequência** | Números da Parte C ficam auditáveis no painel, sem rodar scripts |
+
+### Decisão D4: Catálogo da CF cacheado em `catalogo_cf.csv`
+
+| | |
+|---|---|
+| **O que é** | `src/filtragem_colaborativa.py` cruza os job_ids do ground truth com `postings.csv` (títulos, empresas, flags de persona) e cacheia o resultado em `data/processed/catalogo_cf.csv` |
+| **Por quê** | O .pkl do gerador guarda apenas os job_ids; reprocessar 123 mil linhas do postings.csv a cada boot do Streamlit desperdiçaria ~20 s de carga |
+| **Consequência** | Boot do dashboard mais rápido; cache invalidado automaticamente se o catálogo mudar de tamanho |
+
 ## ❌ O que NÃO foi feito (e por quê)
 
 | Decisão | Por quê |
 |---|---|
-| Não integramos CF no dashboard (`dashboard.py`) | Fora do escopo desta correção; o dashboard continua com a aba CBF |
+| ~~Não integramos CF no dashboard~~ → **Feito na Parte D** | Integrado como abas 3 e 4 do painel (perfil aprendido + comparativo com métricas) |
 | Não implementamos cold-start (usuário novo) | O foco é a comparação justa dos dois algoritmos com histórico; cold-start é uma etapa futura |
 | Não testamos KNN item-item | A aula teórica trabalha user-based; manter o paradigma ensinado |
 | Não fizemos grid search completo de hiperparâmetros | O objetivo é provar a metodologia, não otimizar ao máximo; os hiperparâmetros seguem os da aula (20 épocas, lr 0,005, reg 0,02) |

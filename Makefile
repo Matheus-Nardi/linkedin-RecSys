@@ -12,7 +12,7 @@ build: ## Constrói a imagem Docker isolada
 	docker build -t $(IMAGE_NAME) .
 
 dashboard: ## Inicia o Dashboard Streamlit (http://localhost:8501)
-	docker run --rm -it -p 8501:8501 -v "$$(pwd)":/app $(IMAGE_NAME) streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=8501
+	docker run --rm -it -p 8501:8501 -v "$$(pwd)":/app -e PYTHONPATH=/app $(IMAGE_NAME) streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=8501
 
 figuras: ## Executa o script de geração de figuras da EDA
 	docker run --rm -it -v "$$(pwd)":/app $(IMAGE_NAME) python src/gerar_figuras_eda.py

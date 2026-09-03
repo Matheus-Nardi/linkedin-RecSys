@@ -31,6 +31,21 @@ Investigação sobre a base **LinkedIn Job Postings (2023 - 2024)** (mais de 123
 
 ---
 
+### 3. Filtragem Colaborativa (*Collaborative Filtering - CF*)
+* **Geração de Dados Sintéticos (v3):** Modelo de afinidade verdadeira (*ground truth*) aff(u,j) = w_u · b_j com **exposição ≠ opinião** (Decisões A1–A5 do DECISOES.md): 602.216 interações de 5.000 usuários sobre 6.000 vagas.
+* **Identificação do Aprendizado:** O perfil do usuário é aprendido a partir do histórico de notas (1–5), não declarado.
+* **Algoritmo:** **SVD** (fatoração matricial por valores singulares) vs **KNN** user-based (cosseno), contra baselines triviais (médias global/por usuário/por item).
+* **Vetorização:** Fatores latentes — vetores $p_u$ (usuário) e $q_i$ (vaga) de 20 dimensões.
+* **Similaridade/Previsão:** $\hat{y} = \mu + b_u + b_i + q_i^T p_u$.
+* **Métricas:** RMSE/MAE + Precision@K e NDCG@K contra o ground truth, com teste pareado de Wilcoxon. Resultados: **SVD RMSE 0,625** (vs média global 1,578) e **Precision@10 = 1,00**.
+
+---
+
+### 4. Dashboard Integrado
+O Streamlit reúne as três frentes em quatro abas: **Visão de Negócio (EDA)**, **Simulador CBF** (perfil por curtidas + skills), **Filtragem Colaborativa** (perfil aprendido do usuário sintético, histórico, previsões SVD com explicabilidade μ + b_u + b_i + q_iᵀp_u) e **Comparativo CBF × CF** com as métricas da avaliação.
+
+---
+
 ## 📂 Estrutura do Repositório
 
 ```text
@@ -42,11 +57,12 @@ Investigação sobre a base **LinkedIn Job Postings (2023 - 2024)** (mais de 123
 ├── Makefile                # Automação de comandos para execução local sem poluição do sistema
 │
 ├── src/                    # Código-fonte (scripts executáveis e módulos)
-│   ├── recomendador.py         # Módulo com o motor da classe RecSysCBF (Filtragem por Conteúdo)
-│   ├── executar_simulacao.py   # Gerador de dados sintéticos da Filtragem Colaborativa (v3)
-│   ├── executar_modelagem.py   # Treino/avaliação KNN vs SVD (RMSE/MAE + Precision@K/NDCG@K)
-│   ├── modelo_recomendacao.py  # Protótipo com TF-IDF + K-Means (clusterização de vagas)
-│   └── gerar_figuras_eda.py    # Script de geração dos gráficos de alta resolução da EDA
+│   ├── recomendador.py             # Módulo com o motor da classe RecSysCBF (Filtragem por Conteúdo)
+│   ├── filtragem_colaborativa.py   # Motor CF (SVD) do dashboard: perfil, previsões e explicabilidade
+│   ├── executar_simulacao.py       # Gerador de dados sintéticos da Filtragem Colaborativa (v3)
+│   ├── executar_modelagem.py       # Treino/avaliação KNN vs SVD (RMSE/MAE + Precision@K/NDCG@K)
+│   ├── modelo_recomendacao.py      # Protótipo com TF-IDF + K-Means (clusterização de vagas)
+│   └── gerar_figuras_eda.py        # Script de geração dos gráficos de alta resolução da EDA
 │
 ├── notebooks/              # Laboratórios didáticos (Jupyter)
 │   ├── eda_linkedin.ipynb      # Análise Exploratória de Dados completa
@@ -56,11 +72,11 @@ Investigação sobre a base **LinkedIn Job Postings (2023 - 2024)** (mais de 123
 │   └── cf_modelagem.ipynb      # Modelagem e avaliação da CF
 │
 ├── app/                    # Aplicação interativa
-│   └── dashboard.py            # Streamlit com simulador de recomendação (CBF)
+│   └── dashboard.py            # Streamlit: EDA + Simulador CBF + Filtragem Colaborativa + Comparativo
 │
 ├── data/                   # Dados
 │   ├── raw/                    # Dados brutos (postings.csv, companies/, jobs/, mappings/)
-│   ├── processed/              # Dados gerados (interacoes_sinteticas.csv, *.pkl, modelos)
+│   ├── processed/              # Dados gerados (interacoes_sinteticas.csv, catalogo_cf.csv, *.pkl, modelos)
 │   └── figuras/                # Gráficos gerados pelos scripts e notebooks
 │
 ├── docs/                   # Documentos acadêmicos
