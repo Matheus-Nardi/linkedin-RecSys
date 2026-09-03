@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from recomendador import RecSysCBF
+from src.recomendador import RecSysCBF
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="RecSys - Vagas LinkedIn", layout="wide")
@@ -12,7 +12,7 @@ st.write("Disciplina: Tópicos em Sistemas de Recomendação | Autor: Matheus N.
 # --- CACHE DOS DADOS E MODELO ---
 @st.cache_resource
 def load_and_train_model():
-    base_path = "archive" if os.path.exists("archive") else "."
+    base_path = "data/raw" if os.path.exists("data/raw") else "."
     
     # Carrega Vagas
     colunas_vagas = ['job_id', 'company_id', 'title', 'skills_desc', 'formatted_experience_level', 'remote_allowed', 'applies', 'views']

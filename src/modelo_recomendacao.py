@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 def main():
     print("⏳ Carregando dados para Modelagem...")
-    base_path = "archive" if os.path.exists("archive") else "."
+    base_path = "data/raw" if os.path.exists("data/raw") else "."
     postings_file = f"{base_path}/postings.csv" if os.path.exists(f"{base_path}/postings.csv") else f"{base_path}/job_postings.csv"
     
     # Carregamos uma amostra ou as colunas específicas para não estourar a memória
@@ -48,8 +48,9 @@ def main():
         print(f"{i+1}. {df.iloc[idx]['title']} (Score: {sim_scores[idx]:.4f})")
         
     # Salva o resultado do cluster para o Dashboard
-    df.to_csv("dados_clusterizados.csv", index=False)
-    print("\n✅ Dados clusterizados salvos em 'dados_clusterizados.csv' para o Dashboard.")
+    os.makedirs("data/processed", exist_ok=True)
+    df.to_csv("data/processed/dados_clusterizados.csv", index=False)
+    print("\n✅ Dados clusterizados salvos em 'data/processed/dados_clusterizados.csv' para o Dashboard.")
 
 if __name__ == '__main__':
     main()

@@ -34,17 +34,46 @@ Investigação sobre a base **LinkedIn Job Postings (2023 - 2024)** (mais de 123
 ## 📂 Estrutura do Repositório
 
 ```text
-├── cbf_recomendacao.ipynb  # Laboratório didático da Filtragem Baseada em Conteúdo (TF-IDF e Perfil)
-├── eda_linkedin.ipynb      # Notebook com a Análise Exploratória de Dados completa
-├── dashboard.py            # Aplicação web interativa (Streamlit) com simulador de recomendação
-├── recomendador.py         # Módulo Python reutilizável com o motor da classe RecSysCBF
-├── gerar_figuras_eda.py    # Script automatizado para geração dos gráficos de alta resolução
-├── relatorio_eda.tex       # Relatório científico acadêmico em LaTeX
+├── README.md               # Documentação principal
+├── PRD.md                  # Product Requirements Document com a arquitetura do RecSys
+├── DECISOES.md             # Decisões de design da reestruturação da CF (v3)
 ├── requirements.txt        # Dependências do projeto Python
 ├── Dockerfile              # Configuração do ambiente isolado em container Docker
 ├── Makefile                # Automação de comandos para execução local sem poluição do sistema
-├── PRD.md                  # Product Requirements Document com a arquitetura do RecSys
-└── README.md               # Documentação principal do projeto
+│
+├── src/                    # Código-fonte (scripts executáveis e módulos)
+│   ├── recomendador.py         # Módulo com o motor da classe RecSysCBF (Filtragem por Conteúdo)
+│   ├── executar_simulacao.py   # Gerador de dados sintéticos da Filtragem Colaborativa (v3)
+│   ├── executar_modelagem.py   # Treino/avaliação KNN vs SVD (RMSE/MAE + Precision@K/NDCG@K)
+│   ├── modelo_recomendacao.py  # Protótipo com TF-IDF + K-Means (clusterização de vagas)
+│   └── gerar_figuras_eda.py    # Script de geração dos gráficos de alta resolução da EDA
+│
+├── notebooks/              # Laboratórios didáticos (Jupyter)
+│   ├── eda_linkedin.ipynb      # Análise Exploratória de Dados completa
+│   ├── cbf_recomendacao.ipynb  # Filtragem Baseada em Conteúdo (TF-IDF e Perfil)
+│   ├── de_para_nulos.ipynb     # Tratamento de dados faltantes
+│   ├── cf_geracao_dados.ipynb  # Geração dos dados sintéticos da CF
+│   └── cf_modelagem.ipynb      # Modelagem e avaliação da CF
+│
+├── app/                    # Aplicação interativa
+│   └── dashboard.py            # Streamlit com simulador de recomendação (CBF)
+│
+├── data/                   # Dados
+│   ├── raw/                    # Dados brutos (postings.csv, companies/, jobs/, mappings/)
+│   ├── processed/              # Dados gerados (interacoes_sinteticas.csv, *.pkl, modelos)
+│   └── figuras/                # Gráficos gerados pelos scripts e notebooks
+│
+├── docs/                   # Documentos acadêmicos
+│   ├── relatorio_eda.tex       # Relatório científico em LaTeX
+│   ├── estrutura-eda.md        # Estrutura da análise exploratória
+│   ├── roteiro_2.pdf           # Roteiro da disciplina
+│   └── aulas/                  # Slides das aulas (ex.: Filtragem_colaborativa.pdf)
+│
+└── assets/                 # Recursos visuais estáticos (diagramas, prints)
+    ├── image.png
+    ├── sistema.png
+    ├── slide.png
+    └── tema.png
 ```
 
 ---
@@ -84,7 +113,7 @@ Acesse no navegador: **[http://localhost:8888](http://localhost:8888)**
 ## ☁️ Execução Alternativa (Google Colab / Local Tradicional)
 
 ### Google Colab
-1. Abra os notebooks [`eda_linkedin.ipynb`](eda_linkedin.ipynb) ou [`cbf_recomendacao.ipynb`](cbf_recomendacao.ipynb) no Google Colab.
+1. Abra os notebooks [`notebooks/eda_linkedin.ipynb`](notebooks/eda_linkedin.ipynb) ou [`notebooks/cbf_recomendacao.ipynb`](notebooks/cbf_recomendacao.ipynb) no Google Colab.
 2. Execute as células sequencialmente. O download dos datasets e a execução ocorrerão diretamente na nuvem.
 
 ### Ambiente Local com Virtualenv (Opcional)
@@ -92,7 +121,7 @@ Acesse no navegador: **[http://localhost:8888](http://localhost:8888)**
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-streamlit run dashboard.py
+streamlit run app/dashboard.py
 ```
 
 ---

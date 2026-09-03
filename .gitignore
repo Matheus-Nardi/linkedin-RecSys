@@ -1,15 +1,21 @@
 # ==========================================
-# Git Ignore - Apenas PRD.md e Notebook
+# Git Ignore - Estrutura reorganizada
 # ==========================================
 
-# 1. Datasets pesados e arquivos de dados
-archive/
+# 1. Datasets pesados e dados brutos
+data/raw/
 *.csv
 *.tsv
 *.zip
 *.tar.gz
 
-# 2. Ambiente Python e Cache
+# 2. Dados processados (gerados pelos scripts)
+data/processed/
+
+# 3. Gráficos gerados
+data/figuras/
+
+# 4. Ambiente Python e Cache
 __pycache__/
 *.py[cod]
 *$py.class
@@ -18,20 +24,12 @@ env/
 venv/
 .uv/
 
-# 3. Checkpoints do Jupyter
+# 5. Checkpoints do Jupyter
 .ipynb_checkpoints/
 
-# 4. Scripts e arquivos auxiliares
-gerar_figuras_eda.py
-figuras/
-estrutura-eda.md
-tema.png
-*.png
-*.jpg
-*.jpeg
-
-# 5. Arquivos de compilação do LaTeX
-relatorio_eda.tex
+# 6. Documentos compilados (LaTeX, PDF)
+docs/relatorio_eda.tex
+docs/estrutura-eda.md
 *.aux
 *.log
 *.out
@@ -41,9 +39,10 @@ relatorio_eda.tex
 *.fdb_latexmk
 *.pdf
 
-# 6. Configurações de IDE e SO
+# 7. Configurações de IDE e SO
 .DS_Store
 .vscode/
 .idea/
 
+# 8. Ferramentas
 .agents/
