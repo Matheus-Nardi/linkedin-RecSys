@@ -10,6 +10,13 @@ Abas:
 """
 
 import os
+import sys
+
+# O Streamlit adiciona ao sys.path apenas a pasta do script (app/). Sem a raiz
+# do projeto no caminho, os imports de "src" quebram dentro do container Docker.
+RAIZ_PROJETO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if RAIZ_PROJETO not in sys.path:
+    sys.path.insert(0, RAIZ_PROJETO)
 
 import pandas as pd
 import streamlit as st
@@ -250,7 +257,8 @@ with tab3:
     with st.expander("🔍 Explicabilidade: como o SVD chegou a essas notas?"):
         st.caption(
             "Predição desmembrada: ŷ = μ (média global) + b_u (viés do usuário) "
-            "+ b_i (viés da vaga) + q_iᵀp_u (match latente persona × vaga)"
+            "+ b_i (viés da vaga) + q_iᵀp_u (match latente persona × vaga). "
+            "Notas acima de 5 são truncadas para 5 (escala de avaliação)."
         )
         linhas_exp = []
         for _, row in recs_cf.iterrows():

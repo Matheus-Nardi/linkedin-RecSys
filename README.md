@@ -52,6 +52,7 @@ O Streamlit reúne as três frentes em quatro abas: **Visão de Negócio (EDA)**
 ├── README.md               # Documentação principal
 ├── PRD.md                  # Product Requirements Document com a arquitetura do RecSys
 ├── DECISOES.md             # Decisões de design da reestruturação da CF (v3)
+├── GUIA_APRESENTACAO.md    # Guia em linguagem simples para apresentar o projeto em aula
 ├── requirements.txt        # Dependências do projeto Python
 ├── Dockerfile              # Configuração do ambiente isolado em container Docker
 ├── Makefile                # Automação de comandos para execução local sem poluição do sistema

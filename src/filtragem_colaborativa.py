@@ -139,7 +139,8 @@ class RecSysCF:
                 scores[pos] = self.mu + b_u + self.bi[inner] + float(
                     self.qi[inner] @ p_u
                 )
-        return scores
+        # Mesma truncatura na escala 1-5 que o Surprise aplica em predict()
+        return np.clip(scores, 1.0, 5.0)
 
     def recomendar(
         self,
@@ -199,7 +200,7 @@ class RecSysCF:
             "b_u": b_u,
             "b_i": b_i,
             "match_latente": match,
-            "score": self.mu + b_u + b_i + match,
+            "score": float(np.clip(self.mu + b_u + b_i + match, 1.0, 5.0)),
         }
 
 
