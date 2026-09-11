@@ -1,18 +1,20 @@
 """
 Dashboard Streamlit — Sistema de Recomendação de Vagas (LinkedIn).
 
-Navegação por sidebar:
-  1. Dataset & Hipóteses (EDA)  — radiografia do dataset (X vagas no bruto vs.
-     Y carregadas para processamento) + gráficos das hipóteses H1–H5 desenhados
-     nativamente no dashboard, com veredito visual para o usuário final
-  2. Simulador CBF (Conteúdo)   — perfil por curtidas/rejeições + skills (TF-IDF)
-  3. Filtragem Colaborativa     — perfil aprendido do usuário sintético,
-     histórico, previsões SVD e explicabilidade
-  4. Comparativo CBF × CF       — lado a lado + métricas da avaliação
+Dois modos de visita (navegação na sidebar):
+  🏠 Comece aqui                     — o sistema em 2 minutos, para o leigo
+  🧑‍💼 Modo Candidato (experiência)
+     1. O mercado de vagas (EDA)     — radiografia do dataset + hipóteses H1–H5
+     2. Monte seu perfil (CBF)       — recomendação pelo que o usuário DIZ
+     3. O sistema aprende (CF)       — recomendação pelo que o usuário FAZ
+  🔬 Modo Avaliador (evidência)
+     4. Duelo dos modelos            — CBF × CF × baselines, métricas reais
+     5. Como avaliamos & limitações  — método, proveniência e honestidade
 """
 
 import os
 import sys
+from datetime import datetime
 
 # O Streamlit adiciona ao sys.path apenas a pasta do script (app/). Sem a raiz
 # do projeto no caminho, os imports de "src" quebram dentro do container Docker.
@@ -384,9 +386,62 @@ def _card_hipotese(
             st.caption(f"**Insight:** {insight}")
 
 
+# --- PÁGINA 0: COMECE AQUI (leigo) ---
+def pagina_comece_aqui():
+    st.header(":material/home: Comece aqui — o sistema em 2 minutos")
+    st.markdown(
+        """
+        Este dashboard mostra **como um sistema de recomendação pensa**, usando
+        dados reais de vagas do LinkedIn e um histórico de interações simulado.
+
+        ### As duas "mentes" que recomendam
+        - **CBF — pelo que você DIZ que gosta:** compara o texto da vaga (título,
+          skills, nível) com o perfil que você monta ao curtir ou rejeitar vagas.
+          Funciona até para quem acabou de chegar (*cold start*).
+        - **CF — pelo que você FAZ:** descobre um "DNA de gosto" (fatores latentes)
+          ao comparar o histórico de cada pessoa com o de gente parecida. Não
+          precisa entender nada de vagas — só observar comportamento.
+
+        ### Os dois modos de visita
+        | Modo | Para quem | Pergunta que responde |
+        | :--- | :--- | :--- |
+        | 🧑‍💼 **Candidato** | visitante leigo | Como é ser recomendado? O que o mercado de vagas diz nos dados? |
+        | 🔬 **Avaliador** | banca e turma | Como medimos qualidade? O modelo venceu os "chutes triviais"? Quais são os limites honestos? |
+
+        **Rota sugerida (5 min):** O mercado de vagas → Monte seu perfil →
+        O sistema aprende com você → Duelo dos modelos → Como avaliamos & limitações.
+        """
+    )
+
+    st.subheader(":material/monitoring: O projeto em 4 números")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Vagas reais analisadas", f"{total_vagas:,}",
+              help="Dataset LinkedIn Job Postings (Kaggle, 2023–2024) — EDA 100% real.")
+    c2.metric("Interações simuladas", f"{metricas['n_ratings']:,}",
+              help=f"{metricas['n_users']:,} perfis sintéticos × catálogo de {metricas['n_jobs']:,} vagas. "
+                   "Simulação declarada: dados reais de pessoas violariam a LGPD.")
+    _oraculo = metricas.get("rmse_oraculo")
+    c3.metric("RMSE do SVD", f"{metricas['rmse_svd']:.3f}",
+              help="Escala 1–5, menor é melhor. Chutar a média global daria "
+                   f"{metricas['rmse_media_global']:.3f}"
+                   + (f"; o piso teórico do ruído é {_oraculo:.3f}." if _oraculo else "."))
+    c4.metric("Precision@10 do SVD", f"{metricas['precision_at_10_svd']:.3f}",
+              help="Contra o ground truth de afinidade — leia a página 'Como avaliamos' "
+                   "antes de celebrar este número (ele é otimista por construção).")
+
+    st.info(
+        "⚠️ **Honestidade primeiro:** as notas 1–5 que treinam a CF são sintéticas por "
+        "opção (LGPD), e a avaliação delas tem uma limitação conhecida (ground truth "
+        "bilinear → P@10 otimista). Tudo declarado — não escondido em rodapé — na página "
+        "🧪 Como avaliamos & limitações.",
+        icon=":material/verified:",
+    )
+
+
 # --- PÁGINA 1: DATASET & HIPÓTESES (EDA) ---
 def pagina_dataset_hipoteses():
-    st.header(":material/analytics: Dataset & Hipóteses (EDA)")
+    st.header(":material/analytics: O mercado de vagas — o que os dados dizem (EDA)")
+    st.caption("🧑‍💼 Modo Candidato: antes de recomendar, entender o mercado — hipóteses testadas em ~124 mil vagas reais.")
     st.caption(
         "Primeiro a base por inteiro — o que é, o quanto foi processado —, depois as "
         "hipóteses comprovadas em gráfico, direto no dashboard."
@@ -728,7 +783,8 @@ def _card_h5():
 
 # --- PÁGINA 2: SIMULADOR CBF ---
 def pagina_cbf():
-    st.header("Monte seu Perfil e Receba Recomendações")
+    st.header(":material/tune: Monte seu perfil — o sistema recomenda pelo que você DIZ (CBF)")
+    st.caption("🧑‍💼 Modo Candidato: aqui VOCÊ ensina o sistema — curtindo vagas e digitando skills. Funciona sem histórico (cold start).")
     st.write("Digite palavras-chave para buscar vagas que você **GOSTOU** e vagas que você **REJEITOU**.")
 
     lista_vagas_ui = (
@@ -797,7 +853,8 @@ def pagina_cbf():
 
 # --- PÁGINA 3: FILTRAGEM COLABORATIVA ---
 def pagina_cf():
-    st.header(":material/group: Filtragem Colaborativa — Perfil Aprendido do Usuário")
+    st.header(":material/group: O sistema aprende pelo que você FAZ (CF)")
+    st.caption("🧑‍💼 Modo Candidato: escolha um dos 5.000 perfis sintéticos e veja o que o modelo deduziu do comportamento dele — sem ler uma linha de currículo.")
     st.markdown("""
     Aqui o sistema **aprende** o perfil a partir do histórico de interações (notas 1–5)
     de usuários sintéticos com padrões de candidatura realistas
@@ -922,7 +979,8 @@ def pagina_cf():
 
 # --- PÁGINA 4: COMPARATIVO ---
 def pagina_comparativo():
-    st.header(":material/balance: Comparativo: Filtragem por Conteúdo × Filtragem Colaborativa")
+    st.header(":material/balance: Duelo dos modelos: CBF × CF, com métricas")
+    st.caption("🔬 Modo Avaliador: todas as técnicas na mesma régua — e os chutes triviais do lado para dar contexto a cada número.")
     st.markdown("""
     | Aspecto | CBF (Conteúdo) | CF (Colaborativa) |
     | :--- | :--- | :--- |
@@ -935,29 +993,62 @@ def pagina_comparativo():
 
     st.subheader(":material/monitoring: Qualidade medida na avaliação (executar_modelagem.py)")
     col_m1, col_m2, col_m3 = st.columns(3)
-    col_m1.metric("RMSE — SVD", f"{metricas['rmse_svd']:.3f}", help="Menor é melhor. Baselines: média global 1,578 · por item 1,320 · KNN 1,263")
+    _oraculo_txt = (
+        f" · piso de ruído (oráculo) {metricas['rmse_oraculo']:.3f}"
+        if metricas.get("rmse_oraculo") is not None else ""
+    )
+    col_m1.metric(
+        "RMSE — SVD",
+        f"{metricas['rmse_svd']:.3f}",
+        help=(
+            "Menor é melhor, escala 1–5. Chutar a média global daria "
+            f"{metricas['rmse_media_global']:.3f}; KNN {metricas['rmse_knn']:.3f}"
+            f"{_oraculo_txt}."
+        ),
+    )
     col_m2.metric("Precision@10 — SVD", f"{metricas['precision_at_10_svd']:.3f}", help="Das 10 vagas no topo, quantas eram realmente relevantes (aff ≥ 0,60)")
     col_m3.metric("NDCG@10 — SVD", f"{metricas['ndcg_at_10_svd']:.3f}", help="Qualidade do ranking com ganho graduado — as melhores notas estão no topo?")
 
-    with st.expander(":material/table_chart: Tabela completa de métricas (SVD × KNN × baselines)"):
+    with st.expander(":material/table_chart: Tabela completa de métricas (CBF × SVD × KNN × baselines)", expanded=True):
         tabela_metricas = pd.DataFrame(
             {
-                "Modelo": ["Média Global", "Média por Item", "KNN (Cosseno)", "SVD (20 fatores)"],
+                "Modelo": [
+                    "Média Global (chute)",
+                    "Média por Item (chute)",
+                    "Aleatório (chute)",
+                    "Popularidade (chute)",
+                    "Oráculo — piso de ruído",
+                    "CBF (conteúdo puro)",
+                    "KNN (Cosseno)",
+                    f"SVD ({metricas['n_factors']} fatores)",
+                ],
                 "RMSE": [
                     metricas["rmse_media_global"],
                     metricas["rmse_media_item"],
+                    None,
+                    None,
+                    metricas.get("rmse_oraculo"),
+                    None,
                     metricas["rmse_knn"],
                     metricas["rmse_svd"],
                 ],
                 "Precision@10": [
                     None,
                     None,
+                    metricas.get("precision_at_10_aleatorio"),
+                    metricas.get("precision_at_10_popularidade"),
+                    None,
+                    metricas.get("precision_at_10_cbf"),
                     metricas["precision_at_10_knn"],
                     metricas["precision_at_10_svd"],
                 ],
                 "NDCG@10": [
                     None,
                     None,
+                    metricas.get("ndcg_at_10_aleatorio"),
+                    metricas.get("ndcg_at_10_popularidade"),
+                    None,
+                    metricas.get("ndcg_at_10_cbf"),
                     metricas["ndcg_at_10_knn"],
                     metricas["ndcg_at_10_svd"],
                 ],
@@ -972,32 +1063,171 @@ def pagina_comparativo():
             hide_index=True,
         )
         st.caption(
+            "RMSE em escala 1–5 (menor melhor) · P@10/NDCG@10 contra o ground truth de "
+            "afinidade (maior melhor). CBF e baselines de ranking não preveem nota — por "
+            "isso RMSE '—'. Oráculo = limite teórico sabendo a afinidade exata (piso de "
+            "ruído do gerador). CBF avaliada no mesmo protocolo (avaliar_cbf.py), sem "
+            "bônus de CTR."
+        )
+        st.caption(
             f"Interações: {metricas['n_ratings']:,} | Usuários: {metricas['n_users']:,} | "
             f"Vagas: {metricas['n_jobs']:,} | Esparsidade: {metricas['esparsidade_pct']:.1f}% | "
             f"KNN sem vizinhos: {metricas['knn_predicoes_impossiveis_pct']:.1f}%"
         )
+        p_wil = metricas.get("p_wilcoxon_svd_vs_knn")
+        if p_wil is not None:
+            _p_txt = "p < 10⁻³⁰⁰" if p_wil < 1e-300 else f"p = {p_wil:.2e}"
+            st.caption(
+                f"SVD vs KNN, Wilcoxon pareado (119.828 pares): {_p_txt} → diferença "
+                "estatisticamente real (α = 0,05)."
+            )
+        st.caption(
+            "Nota metodológica: P@10/NDCG@10 usam pool de 2.000 candidatos não vistos no "
+            "treino por usuário (1.000 usuários, 250 por persona); a Popularidade ordena "
+            "pela média de rating do TRAIN — no catálogo inteiro o mesmo baseline daria "
+            "0,868 (protocolos diferentes, não divergência)."
+        )
+        _gerado_cf = metricas.get("gerado_em")
+        _gerado_cbf = metricas.get("gerado_em_cbf")
+        if _gerado_cf:
+            _origem = f"🕓 metadados_cf.pkl gerado em {_gerado_cf} (executar_modelagem.py)"
+            if _gerado_cbf:
+                _origem += f" · metadados_cbf.pkl em {_gerado_cbf} (avaliar_cbf.py)"
+            st.caption(_origem)
 
 
-# --- NAVEGAÇÃO (SIDEBAR) ---
-PAGINAS = [
-    (":material/analytics: Dataset & Hipóteses (EDA)", pagina_dataset_hipoteses),
-    (":material/tune: Simulador CBF (Conteúdo)", pagina_cbf),
-    (":material/group: Filtragem Colaborativa (SVD)", pagina_cf),
-    (":material/balance: Comparativo CBF × CF", pagina_comparativo),
-]
+# --- PÁGINA 5: COMO AVALIAMOS & LIMITAÇÕES (honestidade) ---
+def pagina_limitacoes():
+    st.header(":material/science: Como avaliamos — e onde somos honestos sobre limites")
+    st.caption("🔬 Modo Avaliador: a banca não deveria caçar limitações em arquivos .md — elas estão aqui.")
+    st.markdown(
+        "Um número de avaliação só vale acompanhado de **como** foi medido. Esta página "
+        "declara método, proveniência e fragilidades — na ordem em que a banca vai perguntar."
+    )
+
+    st.subheader(":material/database: 1. De onde vem cada número (proveniência)")
+    artefatos = [
+        ("postings.csv — 123.849 vagas reais", "dataset Kaggle LinkedIn Job Postings (2023–2024)", "data/raw/postings.csv"),
+        ("eda_linkedin.ipynb — EDA e hipóteses", "re-executado com outputs commitados (Sprint 0)", "notebooks/eda_linkedin.ipynb"),
+        ("interacoes_sinteticas.csv — notas 1–5", "src/executar_simulacao.py (gerador v3, seed 42)", "data/processed/interacoes_sinteticas.csv"),
+        ("metadados_cf.pkl — SVD/KNN/baselines", "src/executar_modelagem.py", "data/processed/metadados_cf.pkl"),
+        ("protocolo_ranking.pkl — pool compartilhado", "src/executar_modelagem.py", "data/processed/protocolo_ranking.pkl"),
+        ("metadados_cbf.pkl — CBF no mesmo protocolo", "src/avaliar_cbf.py", "data/processed/metadados_cbf.pkl"),
+    ]
+    linhas_prov = []
+    for nome, fonte, caminho in artefatos:
+        if os.path.exists(caminho):
+            quando = datetime.fromtimestamp(os.path.getmtime(caminho)).strftime("%d/%m/%Y %H:%M")
+            linhas_prov.append({"Artefato": nome, "Gerado por": fonte, "Última execução": quando})
+    st.dataframe(pd.DataFrame(linhas_prov), width="stretch", hide_index=True)
+
+    st.subheader(":material.privacy_tip: 2. Por que os dados de notas são sintéticos")
+    st.markdown(
+        "As **vagas são reais** (123.849 anúncios públicos do LinkedIn). Já as **notas "
+        "1–5 de usuários não existem** no dataset — e coletá-las de pessoas reais violaria "
+        "a LGPD. O gerador (**executar_simulacao.py**) simula 5.000 perfis com preferências "
+        "declaradas (personas) e um padrão de candidatura plausível. A EDA continua 100% "
+        "real: ela é a âncora de realidade do projeto."
+    )
+
+    st.subheader(":material.warning: 3. O que Precision@10 = 1,00 significa (e o que NÃO significa)")
+    def _f3(v):
+        return "—" if v is None else f"{v:.3f}"
+    st.markdown(
+        "O *ground truth* de afinidade é **aff = w_u · b_j** — **bilinear por construção**, "
+        "exatamente a forma que o SVD ajusta. Por isso P@10 = "
+        f"{_f3(metricas['precision_at_10_svd'])}: a métrica prova que **a metodologia de "
+        "avaliação funciona** (o modelo recupera o sinal plantado), não que o sistema "
+        "acertaria no LinkedIn real. O resultado principal é o **ranking relativo** no "
+        "mesmo protocolo (1.000 usuários, pools de 2.000 candidatos não vistos no treino):\n\n"
+        "| Modelo | Precision@10 | NDCG@10 |\n"
+        "| :--- | :--- | :--- |\n"
+        f"| SVD | {_f3(metricas['precision_at_10_svd'])} | {_f3(metricas['ndcg_at_10_svd'])} |\n"
+        f"| CBF (conteúdo puro) | {_f3(metricas.get('precision_at_10_cbf'))} | {_f3(metricas.get('ndcg_at_10_cbf'))} |\n"
+        f"| KNN | {_f3(metricas['precision_at_10_knn'])} | {_f3(metricas['ndcg_at_10_knn'])} |\n"
+        f"| Popularidade | {_f3(metricas.get('precision_at_10_popularidade'))} | {_f3(metricas.get('ndcg_at_10_popularidade'))} |\n"
+        f"| Aleatório | {_f3(metricas.get('precision_at_10_aleatorio'))} | {_f3(metricas.get('ndcg_at_10_aleatorio'))} |"
+    )
+
+    st.subheader(":material.speed: 4. Piso de ruído — a régua honesta do RMSE")
+    if metricas.get("rmse_oraculo") is not None:
+        razao = metricas["rmse_svd"] / metricas["rmse_oraculo"]
+        st.markdown(
+            "O gerador embute ruído ε~N(0, 0,55) nas notas: mesmo sabendo a afinidade "
+            f"exata, um oráculo erraria no mínimo RMSE **{metricas['rmse_oraculo']:.3f}** "
+            "(calculado por **executar_modelagem.py**). O SVD atinge "
+            f"**{metricas['rmse_svd']:.3f}** = {razao:.2f}× o piso — está a apenas "
+            f"{100 * (razao - 1):.0f}% do limite intransponível do ruído. RMSE sem esta "
+            "régua não significa nada; com ela, «erro 0,625 numa escala de 1 a 5» vira "
+            "argumento de defesa."
+        )
+
+    st.subheader(":material.rule: 5. Baselines, significância e escolhas de protocolo")
+    p_wil = metricas.get("p_wilcoxon_svd_vs_knn")
+    if p_wil is None:
+        p_wil_txt = "não disponível neste artefato."
+    elif p_wil < 1e-300:
+        p_wil_txt = "p < 10⁻³⁰⁰ → diferença real, não ruído"
+    else:
+        p_wil_txt = f"p = {p_wil:.2e} → diferença real, não ruído"
+    st.markdown(
+        "- **Nenhum número sozinho:** todo modelo é comparado com chutes triviais "
+        "(média global, média por item, aleatório, popularidade) — a regra de ouro de "
+        "Herlocker et al. (2004).\n"
+        f"- **Wilcoxon pareado** (SVD vs KNN, 119.828 pares): {p_wil_txt}.\n"
+        "- **Baseline de popularidade:** ordena pela média de rating do TRAIN dentro do "
+        "pool de 2.000 candidatos (P@10 = 0,785); no catálogo inteiro daria 0,868 — "
+        "protocolos diferentes, não divergência.\n"
+        "- **Hiperparâmetro escolhido no teste** (melhor de {20, 50, 100} fatores): com "
+        "120 mil pontos de teste o viés é desprezível (erro padrão ~0,004), mas fica declarado."
+    )
+
+    st.subheader(":material.monitor_heart: 6. Limitações abertas (declaradas, não escondidas)")
+    st.markdown(
+        "1. **Avaliação self-fulfilling** (item 3) — a comparação absoluta só vale dentro "
+        "do simulador; a relativa (ranking entre modelos) é o resultado publicável.\n"
+        "2. **skills_desc ausente em ~98% das vagas** do dataset → a avaliação da CBF "
+        "usa na prática título + nível; ainda assim a CBF alcança o KNN em precisão.\n"
+        f"3. **KNN:** {metricas['knn_predicoes_impossiveis_pct']:.1f}% das previsões caem no "
+        f"fallback (média global) por falta de vizinhos — consequência direta da esparsidade "
+        f"de {metricas['esparsidade_pct']:.1f}%.\n"
+        "4. **Dados sintéticos:** correlações do mundo real (ex.: salário→candidaturas) não "
+        "são reproduzidas pelo gerador; a âncora de realidade é a EDA.\n"
+        "5. **Cold start de usuário novo** ainda é coberto só pela CBF — a híbrida (Fase 3) "
+        "fica como evolução natural."
+    )
+
+
+# --- NAVEGAÇÃO (DOIS MODOS) ---
+PAGINAS = {
+    "🏠 Início": [
+        st.Page(pagina_comece_aqui, title="Comece aqui", icon=":material/home:",
+                url_path="comece-aqui", default=True),
+    ],
+    "🧑‍💼 Modo Candidato — experimente o sistema": [
+        st.Page(pagina_dataset_hipoteses, title="O mercado de vagas (EDA)",
+                icon=":material/analytics:", url_path="mercado"),
+        st.Page(pagina_cbf, title="Monte seu perfil (CBF)",
+                icon=":material/tune:", url_path="perfil"),
+        st.Page(pagina_cf, title="O sistema aprende (CF)",
+                icon=":material/group:", url_path="sistema"),
+    ],
+    "🔬 Modo Avaliador — julgue a engenharia": [
+        st.Page(pagina_comparativo, title="Duelo dos modelos",
+                icon=":material/balance:", url_path="duelo"),
+        st.Page(pagina_limitacoes, title="Como avaliamos & limitações",
+                icon=":material/science:", url_path="limitacoes"),
+    ],
+}
+
+_pg = st.navigation(PAGINAS)
 
 with st.sidebar:
     st.markdown("## :material/work: RecSys Vagas")
     st.caption("Vagas LinkedIn · CBF + CF")
     st.divider()
-    pagina_ativa = st.radio(
-        "Navegação",
-        options=[nome for nome, _ in PAGINAS],
-        label_visibility="collapsed",
-    )
-    st.divider()
     st.caption(
         "Disciplina: Tópicos em Sistemas de Recomendação (UNITINS)  \nAutor: Matheus N."
     )
 
-dict(PAGINAS)[pagina_ativa]()
+_pg.run()

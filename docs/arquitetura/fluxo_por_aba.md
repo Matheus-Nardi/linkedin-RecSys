@@ -32,7 +32,7 @@ Cada aba documentada na Arquitetura Alvo deve seguir rigorosamente estes **5 com
 
 ## 📌 Etapa 3: Mapeamento dos Fluxos Atuais (Fases 1 e 2)
 
-Abaixo está a especificação técnica das 4 abas atualmente implementadas no arquivo `app/dashboard.py`:
+Abaixo está a especificação técnica dos fluxos implementados em `app/dashboard.py`. Desde o **Sprint 0** eles se organizam em **dois modos de visita** na navegação (`st.navigation`): 🏠 **Comece aqui** (apresentação para leigos), 🧑‍💼 **Modo Candidato** = fluxos 1–3 abaixo (EDA → CBF → CF), e 🔬 **Modo Avaliador** = fluxo 4 (Comparativo, agora com CBF métrica + oráculo + Wilcoxon + proveniência) mais o novo fluxo 5 **Como avaliamos & limitações** (declaração de método: dados sintéticos/LGPD, avaliação self-fulfilling, piso de ruído, nota metodológica do baseline de popularidade). Os fluxos documentados a seguir permanecem válidos — o que mudou foi o agrupamento e a camada de honestidade na tela.
 
 ---
 
@@ -114,14 +114,29 @@ Abaixo está a especificação técnica das 4 abas atualmente implementadas no a
 * **Objetivo:** Confrontar as características teóricas e as métricas auditadas de ambas as abordagens.
 * **User Story:**
   > *"Como avaliador técnico do projeto, quero confrontar as características e as métricas auditadas de CBF e CF lado a lado, para entender os prós, contras e viabilidade de cada abordagem."*
-* **Artefatos e Dados:** `metricas_avaliacao.pkl`.
-* **Processamento:** Leitura direta das métricas consolidadas (RMSE, Precision@10, NDCG@10, teste de Wilcoxon) para SVD, KNN e baselines triviais.
+* **Artefatos e Dados:** `data/processed/metadados_cf.pkl` (SVD/KNN/baselines/oráculo/Wilcoxon, gerado por `executar_modelagem.py`) e `metadados_cbf.pkl` (CBF no mesmo protocolo, gerado por `avaliar_cbf.py`), mesclados em `carregar_metricas()`.
+* **Processamento:** Tabela completa com 8 linhas — chutes triviais (média global, média por item, aleatório, popularidade), **oráculo (piso de ruído)**, **CBF métrica** (P@K/NDCG@10, sem bônus de CTR), KNN e SVD — mais caption com p-valor de Wilcoxon, nota metodológica do baseline de popularidade (pool de 2.000, médias do TRAIN) e proveniência (data de geração dos .pkl).
+* **Comportamento sob limitações:** se `metadados_cbf.pkl` não existir, as linhas CBF exibem "—" (fallback `.get()`), sem quebrar a página.
 * **Diagrama de Fluxo:**
   ```mermaid
   flowchart LR
-      A["metricas_avaliacao.pkl\n(RMSE, P@10, NDCG@10, Wilcoxon)"] --> D["Renderização das Métricas no Dashboard"]
+      M["executar_modelagem.py"] --> P1["metadados_cf.pkl"]
+      C["avaliar_cbf.py"] -->|"usa protocolo_ranking.pkl"| P2["metadados_cbf.pkl"]
+      P1 --> D["carregar_metricas() → Duelo dos modelos"]
+      P2 --> D
       B["Tabela Conceitual\n(Sinal, Cold Start, Serendipidade)"] --> D
   ```
+
+---
+
+### 🧪 5. Fluxo novo (Sprint 0): Como avaliamos & limitações (Modo Avaliador)
+
+* **Objetivo:** colocar método e fragilidades na tela, onde a banca vê — em vez de escondê-las em .md.
+* **User Story:**
+  > *"Como avaliador, quero saber como cada número foi medido e quais limitações o time declara, para julgar a engenharia sem precisar caçar informação."*
+* **Artefatos e Dados:** mtime dos artefatos em `data/processed/` + chaves de `metadados_cf.pkl`/`metadados_cbf.pkl` (rmse_oraculo, p_wilcoxon, precision/ndcg por modelo).
+* **Conteúdo:** proveniência (tabela artefato→script→data), justificativa LGPD dos dados sintéticos, declaração de avaliação *self-fulfilling* (ground truth bilinear), piso de ruído (oráculo 0,521 vs SVD 0,625 = 1,20×), baselines/Wilcoxon e limitações abertas (skills_desc ~98% null, KNN fallback, cold start → Fase 3).
+* **Fallback:** cada seção é guardada pela presença da chave no metadados — páginas antigas sem as chaves novas simplesmente omitem o bloco.
 
 ---
 
