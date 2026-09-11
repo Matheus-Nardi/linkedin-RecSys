@@ -42,7 +42,7 @@ Investigação sobre a base **LinkedIn Job Postings (2023 - 2024)** (mais de 123
 ---
 
 ### 4. Dashboard Integrado
-O Streamlit reúne as três frentes em quatro abas: **Visão de Negócio (EDA)**, **Simulador CBF** (perfil por curtidas + skills), **Filtragem Colaborativa** (perfil aprendido do usuário sintético, histórico, previsões SVD com explicabilidade μ + b_u + b_i + q_iᵀp_u) e **Comparativo CBF × CF** com as métricas da avaliação.
+O Streamlit reúne as três frentes em páginas navegáveis pela **sidebar**: **Dataset & Hipóteses (EDA)** — radiografia do dataset (X vagas no bruto vs. Y carregadas para processamento, cobertura de salário/remoto/candidaturas) com os gráficos das hipóteses H1–H5 desenhados nativamente no dashboard e veredito visual —, **Simulador CBF** (perfil por curtidas + skills), **Filtragem Colaborativa** (perfil aprendido do usuário sintético, histórico, previsões SVD com explicabilidade μ + b_u + b_i + q_iᵀp_u) e **Comparativo CBF × CF** com as métricas da avaliação.
 
 ---
 
@@ -73,7 +73,7 @@ O Streamlit reúne as três frentes em quatro abas: **Visão de Negócio (EDA)**
 │   └── cf_modelagem.ipynb      # Modelagem e avaliação da CF
 │
 ├── app/                    # Aplicação interativa
-│   └── dashboard.py            # Streamlit: EDA + Simulador CBF + Filtragem Colaborativa + Comparativo
+│   └── dashboard.py            # Streamlit (sidebar): Dataset & Hipóteses + CBF + CF + Comparativo
 │
 ├── data/                   # Dados
 │   ├── raw/                    # Dados brutos (postings.csv, companies/, jobs/, mappings/)

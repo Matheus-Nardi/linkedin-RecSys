@@ -1,0 +1,776 @@
+\documentclass[12pt,a4paper]{article}
+% Compilar via terminal ou Overleaf: pdflatex docs/mega_documento/02_arquitetura_alvo.tex
+
+% --- Pacotes Fundamentais ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\geometry{top=3cm, bottom=2cm, left=3cm, right=2cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath, amssymb}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% --- TikZ para Diagramas de Engenharia de Software ---
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds}
+
+\onehalfspacing
+
+% --- Configurações de Hiperlinks ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=magenta,      
+    urlcolor=blue,
+    citecolor=black
+}
+
+% --- Configuração de Caixas de Destaque ---
+\tcbset{
+    userstorybox/.style={
+        enhanced,
+        colback=gray!5,
+        colframe=blue!80!black,
+        boxrule=1pt,
+        arc=3pt,
+        left=8pt,
+        right=8pt,
+        top=6pt,
+        bottom=6pt,
+        fonttitle=\bfseries\small,
+        coltitle=white,
+        attach boxed title to top left={yshift=-2mm, xshift=4mm},
+        boxed title style={colback=blue!80!black, arc=2pt}
+    },
+    burkebox/.style={
+        enhanced,
+        colback=blue!2,
+        colframe=blue!70!black,
+        boxrule=1.2pt,
+        arc=4pt,
+        left=10pt,
+        right=10pt,
+        top=8pt,
+        bottom=8pt,
+        fonttitle=\bfseries\normalsize,
+        coltitle=white,
+        attach boxed title to top left={yshift=-2mm, xshift=5mm},
+        boxed title style={colback=blue!70!black, arc=2pt}
+    }
+}
+
+\begin{document}
+
+% ==============================================================================
+% CAPA ACADÊMICA INSTITUCIONAL
+% ==============================================================================
+\begin{titlepage}
+    \centering
+    \vspace*{0.5cm}
+    {\large \textbf{UNIVERSIDADE ESTADUAL DO TOCANTINS -- UNITINS}}\\[0.4cm]
+    {\large CURSO DE SISTEMAS DE INFORMAÇÃO}\\[0.4cm]
+    {\large DISCIPLINA: TÓPICOS EM SISTEMAS DE RECOMENDAÇÃO}\\[3.5cm]
+
+    {\Large \textbf{DOCUMENTO OFICIAL DE ESPECIFICAÇÃO TÉCNICA}}\\[0.4cm]
+    {\Large \textbf{SEÇÃO 2: ARQUITETURA ALVO E FLUXO POR ABA DO SISTEMA}}\\[0.4cm]
+    {\large \textbf{Desacoplamento em 3 Camadas, Microssistemas por Aba e Evolução Híbrida sob a Metodologia TDSP}}\\[3.5cm]
+
+    \begin{flushright}
+        \setstretch{1.15}
+        \textbf{Autor Designado:} Danilo Belém Oliveira (\texttt{@DaniloBelemOliveira})\\
+        \textbf{Revisão Técnica:} Matheus Nardi\\
+        \textbf{Vínculo com o Roteiro:} Item 2 do \texttt{instrucoes.md} / Issue \#9\\
+        \textbf{Docente Responsável:} Profa. da Disciplina
+    \end{flushright}
+
+    \vfill
+    {\large Palmas -- TO}\\
+    {\large 2026}
+\end{titlepage}
+
+% ==============================================================================
+% SUMÁRIO E NUMERAÇÃO
+% ==============================================================================
+\tableofcontents
+\thispagestyle{empty}
+\newpage
+\setcounter{page}{1}
+
+% ==============================================================================
+% 1. VISÃO GERAL DA ARQUITETURA E PADRÃO FLUXO POR ABA
+% ==============================================================================
+\section{Visão Geral da Arquitetura de Software e o Padrão ``Fluxo por Aba''}
+
+A construção de um sistema de recomendação corporativo escalável e sustentável exige que os princípios de engenharia de software caminhem em estrita conformidade com a modelagem de \textit{Machine Learning}. Empregando a metodologia \textbf{TDSP (\textit{Team Data Science Process})}, a solução desenvolvida neste projeto supera o paradigma de scripts analíticos monolíticos e isolados em \textit{Jupyter Notebooks}, consolidando-se como um software com arquitetura desacoplada, modularizada e totalmente conteinerizada.
+
+A aplicação adota um modelo arquitetural estrito em \textbf{3 Camadas Lógicas}, estabelecendo fronteiras bem delineadas entre interface de usuário, computação algorítmica e persistência de dados:
+
+\begin{enumerate}
+    \item \textbf{Camada de Apresentação (Frontend Reativo):} Implementada com o framework Streamlit (\texttt{app/dashboard.py}), sendo responsável pela renderização visual, orquestração de abas, captura de interações do usuário e exibição de componentes explicativos.
+    \item \textbf{Camada de Lógica e Modelos de Machine Learning (\texttt{src/}):} Concentra a inteligência do sistema, encapsulando os motores de recomendação por conteúdo (\texttt{RecSysCBF}), colaborativo baseado em SVD (\texttt{RecSysCF}) e os algoritmos estatísticos de diagnóstico de mercado (\texttt{gerar\_figuras\_eda.py}).
+    \item \textbf{Camada de Armazenamento, Cache e Dados (\texttt{data/}):} Gerencia os dados brutos (\texttt{data/raw/}), dados processados (\texttt{data/processed/}), artefatos serializados de modelos treinados (\texttt{.pkl}) e a infraestrutura de cache de alta performance em memória RAM (\texttt{@st.cache\_resource} e \texttt{@st.cache\_data}).
+\end{enumerate}
+
+A Figura~\ref{fig:arquitetura_3_camadas} detalha a interação estrutural entre as três camadas.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    box/.style={draw=black!70, rounded corners=3pt, fill=blue!5, font=\footnotesize, align=center, inner sep=5pt, text width=4.8cm},
+    component/.style={draw=black!60, rounded corners=2pt, fill=white, font=\scriptsize, align=left, inner sep=4pt, text width=4.5cm},
+    layerbox/.style={draw=black!50, dashed, rounded corners=6pt, fill=black!2, inner sep=8pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!75},
+    cachearrow/.style={-{Stealth[length=2mm]}, dashed, thick, draw=blue!70}
+]
+
+% Camada 1: Apresentação
+\node[component] (tab1) {\textbf{Aba 1: EDA de Negócio}\\ \textit{Indicadores macro e hipóteses}};
+\node[component, below=4mm of tab1] (tab2) {\textbf{Aba 2: Simulador CBF}\\ \textit{TF-IDF + Cosseno + CTR}};
+\node[component, below=4mm of tab2] (tab3) {\textbf{Aba 3: CF Colaborativa}\\ \textit{SVD 20 fatores + Explicabilidade}};
+\node[component, below=4mm of tab3] (tab4) {\textbf{Aba 4: Comparativo \& Híbrido}\\ \textit{Auditoria e motor híbrido}};
+\node[box, above=6mm of tab1] (ui) {\textbf{Streamlit Dashboard}\\ \texttt{app/dashboard.py}};
+
+\begin{scope}[on background layer]
+    \node[layerbox, fit=(ui) (tab1) (tab4), label={[font=\small\bfseries, text=blue!80!black]above:1. Camada de Apresentação (Frontend Reativo)}] (layer1) {};
+\end{scope}
+
+% Camada 2: Lógica e Modelos
+\node[component, right=2.2cm of tab1] (core_eda) {\textbf{src/gerar\_figuras\_eda.py}\\ Limpeza e indicadores de mercado};
+\node[component, right=2.2cm of tab2] (core_cbf) {\textbf{RecSysCBF (\texttt{src/recomendador.py})}\\ $\bullet$ TF-IDF (3.000 termos)\\ $\bullet$ Similaridade do Cosseno\\ $\bullet$ Bônus empírico de CTR};
+\node[component, right=2.2cm of tab3] (core_cf) {\textbf{RecSysCF (\texttt{src/filtragem\_colaborativa.py})}\\ $\bullet$ SVD (20 fatores latentes)\\ $\bullet$ Explicabilidade aditiva LGPD};
+
+\begin{scope}[on background layer]
+    \node[layerbox, fit=(core_eda) (core_cbf) (core_cf), label={[font=\small\bfseries, text=green!60!black]above:2. Camada de Lógica e Modelos de ML (\texttt{src/})}] (layer2) {};
+\end{scope}
+
+% Camada 3: Armazenamento e Cache
+\node[component, right=2.2cm of core_eda] (raw_data) {\textbf{data/raw/}\\ $\bullet$ \texttt{postings.csv} (123k)\\ $\bullet$ \texttt{companies.csv}};
+\node[component, right=2.2cm of core_cbf] (proc_data) {\textbf{data/processed/}\\ $\bullet$ \texttt{interacoes.parquet} (602k)\\ $\bullet$ \texttt{catalogo\_cf.csv} (6.000 vagas)};
+\node[component, right=2.2cm of core_cf] (models_data) {\textbf{Modelos e Métricas Serializados}\\ $\bullet$ \texttt{modelo\_svd.pkl}\\ $\bullet$ \texttt{metricas\_avaliacao.pkl}};
+\node[component, below=4mm of models_data, fill=yellow!10] (ram_cache) {\textbf{Cache em Memória RAM}\\ $\bullet$ \texttt{@st.cache\_resource}\\ $\bullet$ \texttt{@st.cache\_data}};
+
+\begin{scope}[on background layer]
+    \node[layerbox, fit=(raw_data) (proc_data) (models_data) (ram_cache), label={[font=\small\bfseries, text=orange!80!black]above:3. Camada de Armazenamento, Cache e Dados (\texttt{data/})}] (layer3) {};
+\end{scope}
+
+% Conexões Camada 1 -> Componentes
+\draw[arrow] (ui) -- (tab1);
+\draw[arrow] (ui) -- (tab2);
+\draw[arrow] (ui) -- (tab3);
+\draw[arrow] (ui) -- (tab4);
+
+% Conexões Camada 1 -> Camada 2
+\draw[arrow] (tab1.east) -- (core_eda.west);
+\draw[arrow] (tab2.east) -- (core_cbf.west);
+\draw[arrow] (tab3.east) -- (core_cf.west);
+\draw[arrow] (tab4.east) -- ++(1.1,0) |- (models_data.west);
+
+% Conexões Camada 2 -> Camada 3
+\draw[arrow] (core_eda.east) -- (raw_data.west);
+\draw[arrow] (core_cbf.east) -- (raw_data.west);
+\draw[arrow] (core_cf.east) -- (proc_data.west);
+\draw[arrow] (core_cf.east) -- (models_data.west);
+
+% Conexão Cache RAM
+\draw[cachearrow] (ram_cache.west) -| node[near end, below, font=\tiny, text=blue!80] {Otimiza leitura} (core_cf.south);
+\draw[cachearrow] (ram_cache.west) -| node[near end, above, font=\tiny, text=blue!80] {Otimiza leitura} (core_cbf.south);
+
+\end{tikzpicture}%
+}
+\caption{Arquitetura global em 3 camadas lógicas da aplicação Streamlit, evidenciando o desacoplamento modular preconizado pelo TDSP.}
+\label{fig:arquitetura_3_camadas}
+\end{figure}
+
+\subsection{O Conceito de ``Fluxo por Aba'' como Microssistemas Independentes}
+
+O framework Streamlit adota uma semântica de execução puramente reativa: a cada modificação em um componente de interface (\textit{widget}), como o deslocamento de um seletor numérico (\textit{slider}) ou a marcação de uma caixa de seleção (\textit{checkbox}), o arquivo principal \texttt{app/dashboard.py} é inteiramente reexecutado do topo à base (\textit{rerun}).
+
+Para evitar acoplamentos colaterais e sobrecargas computacionais decorrentes desse comportamento reativo, o projeto formaliza o padrão de \textbf{Fluxo por Aba}: \textbf{cada aba do sistema atua como um microssistema independente}. Em termos práticos de engenharia, cada aba possui um ciclo de vida computacional autocontido:
+\begin{enumerate}
+    \item \textbf{Entrada de Parâmetros:} Captura e isolamento do estado específico dos \textit{widgets} da aba ativa;
+    \item \textbf{Computação e Transformação:} Disparo de rotinas algorítmicas exclusivas daquela funcionalidade, sem propagação de efeitos colaterais para abas vizinhas;
+    \item \textbf{Renderização Visual:} Exibição independente de relatórios tabulares, figuras interativas e métricas de desempenho.
+\end{enumerate}
+
+Essa abordagem confere elevada estabilidade e manutenibilidade a longo prazo, permitindo que aprimoramentos pontuais em um recomendador (por exemplo, a alteração no número de fatores latentes do SVD) sejam conduzidos de forma estritamente isolada, garantindo a integridade dos demais subsistemas.
+
+% ==============================================================================
+% 2. OS 5 COMPONENTES ESTRUTURAIS OBRIGATÓRIOS DE CADA ABA
+% ==============================================================================
+\section{Os 5 Componentes Estruturais Obrigatórios de Cada Aba}
+
+Com o intuito de estabelecer uniformidade técnica e consistência epistemológica em todo o ciclo de vida do projeto, a especificação e implementação de cada aba obedecem rigorosamente a \textbf{5 componentes estruturais obrigatórios}:
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+    \item \textbf{Objetivo de Negócio \& User Story Vinculada:} Define a tese mercadológica ou a necessidade analítica atendida pela funcionalidade, delimitando a persona de negócio destinatária (Candidato, Recrutador Corporativo ou Avaliador Técnico).
+    \item \textbf{Entrada de Dados (Inputs e Artefatos de Base):} Identifica os conjuntos de dados utilizados (arquivos brutos \texttt{.csv}, arquivos colunares \texttt{.parquet} ou matrizes serializadas \texttt{.pkl}) e os hiperparâmetros manipuláveis na interface pelo usuário em tempo de execução.
+    \item \textbf{Processamento / Pipeline Algorítmico:} Detalha formalmente o fluxo matemático e analítico executado nos bastidores (formulações de TF-IDF, similaridade vetorial, fatoração matricial por valores singulares e agregações estatísticas).
+    \item \textbf{Saída Visual (Outputs e Elementos de Decisão):} Especifica os componentes renderizados em tela, tais como tabelas ranqueadas Top-$N$, indicadores em formato de cartão (\textit{KPI cards}), figuras gráficas e painéis sanfonados de explicabilidade algorítmica.
+    \item \textbf{Comportamento sob Limitações, Fallback e Transição:} Estabelece as salvaguardas computacionais para tratamento de exceções (como o problema de inicialização a frio, ou \textit{Cold Start}), além de orientar o usuário para o próximo estágio metodológico do fluxo.
+\end{enumerate}
+
+% ==============================================================================
+% 3. ESPECIFICAÇÃO TÉCNICA DAS 4 ABAS DO SISTEMA
+% ==============================================================================
+\section{Mapeamento e Especificação Técnica das 4 Abas do Sistema}
+
+Apresenta-se a seguir a engenharia detalhada das quatro abas implementadas no sistema.
+
+% ------------------------------------------------------------------------------
+% 3.1 ABA 1: EDA DE NEGÓCIO
+% ------------------------------------------------------------------------------
+\subsection{Aba 1: Visão de Negócio (EDA de Mercado)}
+
+\begin{tcolorbox}[userstorybox, title={User Story Vinculada (Aba 1)}]
+\textit{``Como candidato, quero ver estatísticas do mercado de vagas, para entender o contexto antes de buscar recomendações.''} (\textbf{Persona:} Candidato).
+\end{tcolorbox}
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+    \item \textbf{Objetivo de Negócio:} Apresentar o diagnóstico quantitativo do mercado de trabalho em tecnologia a partir de dados empíricos, validando hipóteses mercadológicas estratégicas para orientar o desenho dos modelos de recomendação subsequentes.
+    \item \textbf{Entradas de Dados \& Artefatos:}
+    \begin{itemize}
+        \item \texttt{data/raw/postings.csv}: Base primária contendo 123.849 anúncios de empregos coletados entre 2023 e 2024;
+        \item \texttt{data/raw/companies/companies.csv}: Metadados cadastrais e segmentação de porte corporativo.
+    \end{itemize}
+    \item \textbf{Processamento \& Algoritmos (\texttt{src/gerar\_figuras\_eda.py}):}
+    \begin{itemize}
+        \item Rotinas de higienização de dados, imputação de valores ausentes e saneamento de valores atípicos (\textit{outliers}) de remuneração;
+        \item Mensuração da mediana de taxa de conversão (\textit{Click-Through Rate} -- CTR), definida pela razão entre candidaturas efetivas e visualizações:
+        \begin{equation}
+            \text{CTR} = \frac{\text{applies}}{\text{views}}
+        \end{equation}
+        \item Avaliação empírica de 5 hipóteses estratégicas (mantendo rigor epistêmico quanto à distinção entre correlação e causalidade):
+        \begin{itemize}
+            \item \textbf{Hipótese 1 ($H_1$ -- Preferência Remota): Confirmada.} Vagas remotas apresentam CTR mediano de 20,6\% contra 16,5\% das vagas presenciais (vantagem observada de +24,5\% em atratividade).
+            \item \textbf{Hipótese 2 ($H_2$ -- Disparidade por Senioridade): Confirmada.} O salário médio anual apresenta forte correlação positiva com a senioridade (\$118k para profissionais sêniores contra \$58k para posições de entrada).
+            \item \textbf{Hipótese 3 ($H_3$ -- Remoto vs. Presencial): Refutada.} O senso comum mercadológico supunha maior remuneração no presencial para compensação de deslocamento; os dados mostram remuneração média remota 45\% superior.
+            \item \textbf{Hipótese 4 ($H_4$ -- Salário por Porte de Empresa): Refutada.} Médias empresas e \textit{startups} tecnológicas registraram salários médios superiores aos de grandes corporações tradicionais na base avaliada.
+            \item \textbf{Hipótese 5 ($H_5$ -- Transparência Salarial): Confirmada.} Vagas remotas e posições de média/alta maturidade exibem maior índice de publicação aberta de faixas salariais.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Saída Visual (Outputs):} Cartões diagnósticos com o resultado de cada hipótese e justificativas metodológicas, fornecendo a sustentação teórica para a criação do bônus empírico de atratividade mercadológica utilizado na filtragem por conteúdo.
+    \item \textbf{Fallback e Transição:} Operação independente de histórico de usuário. Caso os dados brutos estejam ausentes, uma mensagem orienta o usuário a executar a rotina de automação via \texttt{Makefile}. A aba serve de base contextual para que o candidato transite para a Aba 2 e configure seu perfil de competências.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.2cm,
+    block/.style={draw=black!70, rounded corners=3pt, fill=blue!5, font=\footnotesize, align=center, inner sep=6pt, minimum height=1cm},
+    data/.style={draw=black!70, rounded corners=3pt, fill=orange!10, font=\footnotesize, align=center, inner sep=6pt, text width=3.8cm},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!75}
+]
+
+\node[data] (raw_p) {\textbf{data/raw/postings.csv}\\(123.849 vagas reais)};
+\node[data, below=6mm of raw_p] (raw_c) {\textbf{data/raw/companies.csv}\\(segmentação cadastral)};
+\node[block, right=1.2cm of $(raw_p)!0.5!(raw_c)$, text width=4.5cm] (eda) {\textbf{src/gerar\_figuras\_eda.py}\\Limpeza estatística, nulos e medianas de CTR};
+\node[block, right=1.2cm of eda, text width=4.8cm, fill=green!8] (kpi) {\textbf{Validação Empírica:}\\$\bullet$ 3 Hipóteses Confirmadas ($H_1, H_2, H_5$)\\$\bullet$ 2 Hipóteses Refutadas ($H_3, H_4$)};
+\node[block, right=1.2cm of kpi, text width=3.8cm, fill=purple!5] (ui_tab1) {\textbf{Renderização na Aba 1}\\Cards analíticos, métricas e gráficos};
+\node[block, below=8mm of ui_tab1, text width=3.8cm, fill=gray!10] (trans) {\textbf{Transição do Usuário}\\Encaminhamento para Aba 2 (CBF)};
+
+\draw[arrow] (raw_p.east) -- (eda.west);
+\draw[arrow] (raw_c.east) -- (eda.west);
+\draw[arrow] (eda.east) -- (kpi.west);
+\draw[arrow] (kpi.east) -- (ui_tab1.west);
+\draw[arrow] (ui_tab1.south) -- (trans.north);
+
+\end{tikzpicture}%
+}
+\caption{Fluxo de processamento e jornada de dados da Aba 1 (EDA de Mercado).}
+\label{fig:fluxo_aba1}
+\end{figure}
+
+% ------------------------------------------------------------------------------
+% 3.2 ABA 2: SIMULADOR CBF
+% ------------------------------------------------------------------------------
+\subsection{Aba 2: Simulador CBF (Filtragem Baseada em Conteúdo)}
+
+\begin{tcolorbox}[userstorybox, title={User Story Vinculada (Aba 2)}]
+\textit{``Como candidato sem histórico ou em transição, quero buscar vagas por palavras-chave e habilidades pontuais, para obter recomendações semanticamente aderentes sem depender de dados prévios.''} (\textbf{Persona:} Candidato).
+\end{tcolorbox}
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+    \item \textbf{Objetivo de Negócio:} Permitir ao usuário sintetizar interativamente um perfil profissional dinâmico (combinando preferências explícitas, rejeições e habilidades textuais livres), gerando recomendações semanticamente compatíveis mesmo na completa ausência de histórico pretérito de navegação.
+    \item \textbf{Entradas de Dados \& Parâmetros na UI:}
+    \begin{itemize}
+        \item Amostra estratificada de 25.000 anúncios de vagas oriunda de \texttt{postings.csv}, delimitada para otimização de latência e consumo de memória RAM;
+        \item Parâmetros dinâmicos manipulados pelo candidato na interface:
+        \begin{itemize}
+            \item Vagas de interesse selecionadas (vetor de reforço positivo);
+            \item Vagas rejeitadas selecionadas (vetor de penalização negativa);
+            \item Campo de texto livre para inserção de competências (\texttt{custom\_skills});
+            \item Filtro booleano exclusivo para vagas em modalidade remota;
+            \item Controle deslizante para quantidade de recomendações Top-$N \in [5, 20]$.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Processamento \& Algoritmos (\texttt{src/recomendador.py}):}
+    \begin{enumerate}[label=\alph*)]
+        \item \textbf{Construção do Documento Textual por Item ($d_j$):} Concatenação ponderada dos atributos da vaga com dobro de peso atribuído ao título da função:
+        \begin{equation}
+            \text{Documento}_j = (\text{Título}_j \times 2) \oplus \text{Skills}_j \oplus \text{Nível\_Experiência}_j
+        \end{equation}
+        \item \textbf{Vetorização Esparsa via TF-IDF:} Mapeamento dos documentos em um espaço vetorial composto pelos 3.000 termos mais relevantes segundo a frequência inversa do documento.
+        \item \textbf{Síntese do Vetor de Perfil do Usuário ($\mathbf{u}$):} Construção de um vetor híbrido combinando centróides positivos, negativos e termos textuais digitados:
+        \begin{equation}
+            \mathbf{u} = \alpha \cdot \mathbf{v}_{\text{curtidas}} - \beta \cdot \mathbf{v}_{\text{rejeitadas}} + \gamma \cdot \mathbf{v}_{\text{skills}}
+        \end{equation}
+        onde adotou-se a calibração unitária balanceada $\alpha = 1{,}0$, $\beta = 1{,}0$ e $\gamma = 1{,}0$.
+        \item \textbf{Similaridade do Cosseno:} Avaliação da aderência semântica entre o perfil sintetizado $\mathbf{u}$ e cada documento de vaga $\mathbf{d}_j$:
+        \begin{equation}
+            \cos(\mathbf{u}, \mathbf{d}_j) = \frac{\mathbf{u} \cdot \mathbf{d}_j}{\|\mathbf{u}\| \|\mathbf{d}_j\|}
+        \end{equation}
+        \item \textbf{Bônus Empírico de Atratividade (CTR):} Incorporação do engajamento de mercado validado na Aba 1 para favorecer oportunidades com maior conversão histórica comprovada:
+        \begin{equation}
+            \text{Score Final}_j = \cos(\mathbf{u}, \mathbf{d}_j) + 0{,}05 \cdot \text{CTR}_j
+        \end{equation}
+    \end{enumerate}
+    \item \textbf{Saída Visual (Outputs):} Tabela interativa com o ranking ordenado Top-$N$, expondo colunas informativas de Título, Empresa, Nível de Experiência, Selo Remoto, Similaridade do Cosseno e Bônus de CTR aplicado.
+    \item \textbf{Fallback e Resolução de Limitações:}
+    \begin{itemize}
+        \item \textbf{Resolução Nativa de Cold Start:} Como o modelo baseia-se puramente em atributos do item e do texto digitado, a inserção de uma única habilidade (ex.: ``Python'') é suficiente para gerar recomendações coerentes, eliminando a dependência de um histórico prévio de interações;
+        \item Validação defensiva na interface: caso nenhum critério de busca seja fornecido, o sistema exibe alerta amigável de orientação sem interrupção de execução.
+    \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.0cm,
+    inputbox/.style={draw=black!70, rounded corners=3pt, fill=orange!8, font=\footnotesize, align=left, inner sep=5pt, text width=3.6cm},
+    procbox/.style={draw=black!70, rounded corners=3pt, fill=blue!5, font=\footnotesize, align=center, inner sep=6pt, text width=4.6cm},
+    outbox/.style={draw=black!70, rounded corners=3pt, fill=green!8, font=\footnotesize, align=center, inner sep=6pt, text width=3.8cm},
+    groupbox/.style={draw=black!40, dashed, rounded corners=6pt, fill=black!2, inner sep=8pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!75}
+]
+
+\node[inputbox] (in_l) {\textbf{Vagas Curtidas} ($\alpha = 1{,}0$)};
+\node[inputbox, below=3mm of in_l] (in_d) {\textbf{Vagas Rejeitadas} ($\beta = 1{,}0$)};
+\node[inputbox, below=3mm of in_d] (in_s) {\textbf{Skills Digitadas} ($\gamma = 1{,}0$)};
+\node[inputbox, below=3mm of in_s] (in_f) {\textbf{Filtros do Usuário}\\Filtro remoto \& Slider Top-$N$};
+
+\begin{scope}[on background layer]
+    \node[groupbox, fit=(in_l) (in_f), label={[font=\small\bfseries]above:Entradas do Candidato (UI)}] (grp_in) {};
+\end{scope}
+
+\node[procbox, right=1.6cm of in_d] (prof) {\textbf{RecSysCBF.build\_user\_profile}\\Vetor do Usuário $\mathbf{u} \in \mathbb{R}^{3000}$};
+\node[procbox, above=6mm of prof, fill=purple!5] (tf) {\textbf{Matriz TF-IDF Cacheada}\\3.000 features de 25k vagas};
+\node[procbox, below=6mm of prof] (sim) {\textbf{Similaridade do Cosseno}\\$\cos(\mathbf{u}, \mathbf{d}_j) = \frac{\mathbf{u} \cdot \mathbf{d}_j}{\|\mathbf{u}\| \|\mathbf{d}_j\|}$};
+\node[procbox, right=1.6cm of sim] (score) {\textbf{Score Final Híbrido Empírico}\\$\text{Score} = \cos(\mathbf{u}, \mathbf{d}_j) + 0{,}05 \cdot \text{CTR}_j$};
+\node[procbox, above=6mm of score, fill=yellow!15] (ctr) {\textbf{Bônus de Atratividade}\\$+ 0{,}05 \cdot \text{CTR}_j$};
+
+\node[outbox, right=1.4cm of score] (out) {\textbf{Interface Streamlit}\\Tabela Top-$N$ Ranqueada e Explicada};
+
+\draw[arrow] (in_l.east) -- (prof.west);
+\draw[arrow] (in_d.east) -- (prof.west);
+\draw[arrow] (in_s.east) -- (prof.west);
+\draw[arrow] (prof) -- (sim);
+\draw[arrow] (tf) -| (sim);
+\draw[arrow] (sim) -- (score);
+\draw[arrow] (ctr) -- (score);
+\draw[arrow] (in_f.east) -| (score.south);
+\draw[arrow] (score) -- (out);
+
+\end{tikzpicture}%
+}
+\caption{Fluxo de recomendação e equacionamento vetorial da Aba 2 (Filtragem Baseada em Conteúdo).}
+\label{fig:fluxo_aba2}
+\end{figure}
+
+% ------------------------------------------------------------------------------
+% 3.3 ABA 3: FILTRAGEM COLABORATIVA (SVD)
+% ------------------------------------------------------------------------------
+\subsection{Aba 3: Filtragem Colaborativa (SVD sobre Dados Sintéticos)}
+
+\begin{tcolorbox}[userstorybox, title={User Story Vinculada (Aba 3)}]
+\textit{``Como plataforma/recrutador, quero aprender padrões implícitos de candidatura a partir do histórico coletivo, para sugerir oportunidades alinhadas ao comportamento de profissionais similares.''} (\textbf{Persona:} Plataforma / Recrutador).
+\end{tcolorbox}
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+    \item \textbf{Objetivo de Negócio:} Demonstrar a eficácia de algoritmos baseados em fatores latentes na captura de padrões complexos de comportamento coletivo, oferecendo auditoria detalhada por meio de explicabilidade matemática aditiva, em conformidade com as diretrizes de transparência algorítmica da LGPD (Lei nº 13.709/2018).
+    \item \textbf{Entradas de Dados \& Artefatos:}
+    \begin{itemize}
+        \item \texttt{modelo\_svd.pkl}: Modelo de Decomposição em Valores Singulares (\textit{Singular Value Decomposition}) treinado e serializado;
+        \item \texttt{data/processed/catalogo\_cf.csv}: Catálogo padronizado de 6.000 vagas indexadas com títulos e metadados;
+        \item \texttt{data/processed/interacoes.parquet}: Matriz contendo 602.216 avaliações explícitas (escala de 1 a 5) atribuídas por 5.000 personas sintéticas estruturadas;
+        \item Controles de interface: Seletor de identificador de usuário sintético ($u \in [1, 5000]$), opção para excluir vagas já avaliadas, filtro de modalidade remota e seletor Top-$N$.
+    \end{itemize}
+    \item \textbf{Processamento \& Algoritmos (\texttt{src/filtragem\_colaborativa.py}):}
+    \begin{enumerate}[label=\alph*)]
+        \item Recuperação do vetor latente do usuário selecionado $p_u \in \mathbb{R}^{20}$ e mapeamento de sua persona primária;
+        \item Carregamento do histórico real de treino do usuário a partir do arquivo colunar parquet;
+        \item Cálculo da nota prevista $\hat{y}_{u,i}$ para cada vaga $i$ do catálogo não avaliada previamente pelo usuário:
+        \begin{equation}
+            \hat{y}_{u,i} = \mu + b_u + b_i + q_i^T p_u
+        \end{equation}
+        onde:
+        \begin{itemize}
+            \item $\mu = 3{,}230$ representa a média global de todas as avaliações no conjunto de treino;
+            \item $b_u \in \mathbb{R}$ corresponde ao viés específico do usuário $u$ (tendência individual a ser mais leniente ou rigoroso nas notas);
+            \item $b_i \in \mathbb{R}$ expressa o viés do item $i$ (atratividade geral da vaga frente ao conjunto dos candidatos);
+            \item $q_i^T p_u$ traduz o produto interno dos fatores latentes de dimensão $k=20$, mensurando a interação específica entre as afinidades do usuário e as características intrínsecas da vaga.
+        \end{itemize}
+        \item Ordenação decrescente pelas notas estimadas e filtragem de corte Top-$N$.
+    \end{enumerate}
+    \item \textbf{Saída Visual (Outputs):}
+    \begin{itemize}
+        \item Gráfico de barras ilustrando a distribuição de afinidade do usuário entre as 5 personas de referência (\textit{Tech, Business, Design, Saúde, Operações});
+        \item Tabela de histórico de avaliações passadas para confronto com as novas predições;
+        \item Tabela Top-$N$ com predições numéricas no intervalo $[1{,}00; 5{,}00]$;
+        \item \textbf{Expander de Explicabilidade Aditiva:} Tabela transparente que decompõe a nota exata prevista pelo SVD em suas quatro parcelas constitutivas ($\mu, b_u, b_i, q_i^T p_u$), cumprindo o princípio legal da explicabilidade.
+    \end{itemize}
+    \item \textbf{Fallback e Limitações:}
+    \begin{itemize}
+        \item \textbf{Resiliência à Esparsidade Extrema (97,99\%):} A projeção em 20 fatores latentes permite ao SVD estimar afinidades para qualquer par $(u, i)$. Isso supera decisivamente os métodos baseados em memória (como o KNN \textit{user-based}), que falharam em 32,4\% das consultas devido à ausência de vizinhos em comum na matriz esparsa;
+        \item \textbf{Limitação de Cold Start Puro:} O algoritmo não é capaz de gerar inferências para usuários fora do conjunto de treino sem histórico prévio, delegando esse cenário ao motor de conteúdo da Aba 2 ou ao motor híbrido.
+    \end{itemize}
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.0cm,
+    uibox/.style={draw=black!70, rounded corners=3pt, fill=orange!8, font=\footnotesize, align=left, inner sep=5pt, text width=3.8cm},
+    enginebox/.style={draw=black!70, rounded corners=3pt, fill=blue!5, font=\footnotesize, align=center, inner sep=6pt, text width=4.6cm},
+    outbox/.style={draw=black!70, rounded corners=3pt, fill=green!8, font=\footnotesize, align=left, inner sep=5pt, text width=4.2cm},
+    groupbox/.style={draw=black!40, dashed, rounded corners=6pt, fill=black!2, inner sep=8pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!75}
+]
+
+\node[uibox] (u_sel) {\textbf{Seleção de Usuário}\\ID Sintético $u \in [1, 5000]$};
+\node[uibox, below=6mm of u_sel] (u_filt) {\textbf{Configuração de Filtros}\\$\bullet$ Ocultar já avaliadas\\$\bullet$ Exigir vagas remotas\\$\bullet$ Slider Top-$N$};
+
+\begin{scope}[on background layer]
+    \node[groupbox, fit=(u_sel) (u_filt), label={[font=\small\bfseries]above:Entradas na Aba 3 (UI)}] (grp_ui) {};
+\end{scope}
+
+\node[enginebox, right=1.6cm of u_sel] (recup_lat) {\textbf{Recuperação de Perfil}\\Vetor latente $p_u \in \mathbb{R}^{20}$ e persona};
+\node[enginebox, below=5mm of recup_lat] (recup_hist) {\textbf{Recuperação de Histórico}\\Treino real em \texttt{interacoes.parquet}};
+\node[enginebox, below=5mm of recup_hist, fill=purple!5] (svd_core) {\textbf{Inferência SVD (\texttt{modelo\_svd.pkl})}\\$\hat{y}_{u,i} = \mu + b_u + b_i + q_i^T p_u$};
+\node[enginebox, below=5mm of svd_core] (rank_cf) {\textbf{Ordenação \& Filtragem}\\Corte Top-$N$ e exclusão de itens};
+
+\node[outbox, right=1.6cm of recup_lat] (out_bar) {\textbf{Gráfico de Afinidades}\\Mistura de 5 personas};
+\node[outbox, right=1.6cm of recup_hist] (out_hist) {\textbf{Tabela de Histórico}\\Avaliações passadas do usuário};
+\node[outbox, right=1.6cm of svd_core] (out_exp) {\textbf{Explicabilidade Aditiva}\\Decomposição $\mu, b_u, b_i, q_i^T p_u$};
+\node[outbox, right=1.6cm of rank_cf] (out_tab) {\textbf{Tabela Top-$N$ CF}\\Ranking com predição [1, 5]};
+
+\draw[arrow] (u_sel.east) -- (recup_lat.west);
+\draw[arrow] (u_sel.east) |- (recup_hist.west);
+\draw[arrow] (recup_lat.south) -- (svd_core.north);
+\draw[arrow] (svd_core.south) -- (rank_cf.north);
+\draw[arrow] (u_filt.east) |- (rank_cf.west);
+
+\draw[arrow] (recup_lat.east) -- (out_bar.west);
+\draw[arrow] (recup_hist.east) -- (out_hist.west);
+\draw[arrow] (svd_core.east) -- (out_exp.west);
+\draw[arrow] (rank_cf.east) -- (out_tab.west);
+
+\end{tikzpicture}%
+}
+\caption{Fluxo de inferência latente, auditoria e explicabilidade da Aba 3 (Filtragem Colaborativa via SVD).}
+\label{fig:fluxo_aba3}
+\end{figure}
+
+% ------------------------------------------------------------------------------
+% 3.4 ABA 4: COMPARATIVO CBF X CF
+% ------------------------------------------------------------------------------
+\subsection{Aba 4: Comparativo CBF $\times$ CF (Estado Atual nas Fases 1 e 2)}
+
+\begin{tcolorbox}[userstorybox, title={User Story Vinculada (Aba 4)}]
+\textit{``Como avaliador técnico do projeto, quero confrontar as características e as métricas auditadas de CBF e CF lado a lado, para entender os prós, contras e viabilidade de cada abordagem.''} (\textbf{Persona:} Avaliador Técnico).
+\end{tcolorbox}
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+    \item \textbf{Objetivo de Negócio:} Apresentar uma confrontação metrológica e teórica rigorosa entre as abordagens de Filtragem Baseada em Conteúdo e Filtragem Colaborativa, fundamentando decisões de engenharia perante auditorias acadêmicas.
+    \item \textbf{Entradas de Dados \& Artefatos:} \texttt{metricas\_avaliacao.pkl}, dicionário serializado gerado pela suíte oficial de benchmark (\texttt{src/executar\_modelagem.py}).
+    \item \textbf{Processamento \& Algoritmos:}
+    \begin{itemize}
+        \item Sistematização das matrizes conceituais de \textit{trade-offs} de recomendação (Tabela~\ref{tab:comparativo_conceitual});
+        \item Resgate das métricas experimentais auditadas:
+        \begin{itemize}
+            \item Erro Médio Quadrático (\textbf{RMSE}) do SVD ($0{,}879$), demonstrando superioridade expressiva em relação aos baselines de Média Global ($1{,}578$), Média por Item ($1{,}320$) e KNN Cosseno ($1{,}263$);
+            \item Precisão no Top-10 (\textbf{Precision@10}) de $0{,}999$ e Ganho Cumulativo Descontado Normalizado (\textbf{NDCG@10}) de $0{,}998$;
+            \item Análise de proximidade em relação ao piso teórico irredutível de ruído estocástico ($\sigma = 0{,}520$);
+            \item Teste não-paramétrico de postos sinalizados de Wilcoxon confirmando significância estatística robusta ($p < 0{,}001$) a favor do SVD.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Saída Visual (Outputs):} Tabela conceitual de contraposição técnica, cartões sintéticos dos indicadores do modelo campeão (SVD) e tabela auditada completa de modelos concorrentes.
+    \item \textbf{Fallback e Conexão Arquitetural:} Funciona como fechamento formal das entregas das Fases 1 e 2, evidenciando que nenhum modelo isolado é completo e estabelecendo a necessidade da hibridização na Fase 3.
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\caption{Comparativo conceitual de características entre CBF e CF.}
+\label{tab:comparativo_conceitual}
+\begin{tabular}{lp{6cm}p{6cm}}
+\toprule
+\textbf{Dimensão} & \textbf{Filtragem por Conteúdo (CBF)} & \textbf{Filtragem Colaborativa (CF)} \\
+\midrule
+\textbf{Sinal Primário} & Metadados textuais de vagas e competências & Matriz de interações implícitas/explícitas \\
+\addlinespace
+\textbf{Perfil do Usuário} & Explícito (habilidades digitadas e preferências) & Fatores latentes aprendidos ($p_u \in \mathbb{R}^{20}$) \\
+\addlinespace
+\textbf{Risco de Cold Start} & Baixo (basta 1 termo para gerar vetor de busca) & Crítico para novos usuários sem avaliações \\
+\addlinespace
+\textbf{Serendipidade} & Reduzida (propensão à hiperespecialização) & Elevada (descobre afinidades não óbvias) \\
+\addlinespace
+\textbf{Explicabilidade} & Baseada em regras de similaridade textual & Aditiva via vieses e fatores latentes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.2cm,
+    block/.style={draw=black!70, rounded corners=3pt, fill=blue!5, font=\footnotesize, align=center, inner sep=6pt},
+    data/.style={draw=black!70, rounded corners=3pt, fill=orange!10, font=\footnotesize, align=center, inner sep=6pt, text width=4.0cm},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!75}
+]
+
+\node[data] (met) {\textbf{metricas\_avaliacao.pkl}\\$\bullet$ RMSE (SVD vs Baselines)\\$\bullet$ Precision@10 \& NDCG@10\\$\bullet$ Teste de Wilcoxon};
+\node[data, below=6mm of met] (tab_conc) {\textbf{Matriz Conceitual}\\Cold Start vs. Serendipidade\\Perfil Semântico vs. Implícito};
+\node[block, right=1.4cm of $(met)!0.5!(tab_conc)$, text width=4.2cm] (render) {\textbf{Renderização no Dashboard}\\Consolidação analítica das Fases 1 e 2};
+\node[block, right=1.4cm of render, text width=4.4cm, fill=green!8] (cards) {\textbf{Painel Auditado}\\$\bullet$ Cards de KPIs do SVD\\$\bullet$ Tabelas comparativas de erro};
+\node[block, below=8mm of cards, text width=4.4cm, fill=yellow!15] (decisao) {\textbf{Fundamentação da Fase 3}\\Evolução para o Motor Híbrido};
+
+\draw[arrow] (met.east) -- (render.west);
+\draw[arrow] (tab_conc.east) -- (render.west);
+\draw[arrow] (render.east) -- (cards.west);
+\draw[arrow] (cards.south) -- (decisao.north);
+
+\end{tikzpicture}%
+}
+\caption{Fluxo analítico e de auditoria comparativa da Aba 4 (Fases 1 e 2).}
+\label{fig:fluxo_aba4}
+\end{figure}
+
+% ==============================================================================
+% 4. SALTO ARQUITETURAL: MOTOR HÍBRIDO (FASE 3)
+% ==============================================================================
+\section{O Salto Arquitetural: Evolução para o Motor Híbrido (Fase 3)}
+
+Conforme planejado nas especificações metodológicas do projeto, a arquitetura de software evoluirá expressivamente na Fase 3. A \textbf{Aba 4 passará por um salto arquitetural}, deixando de ser apenas um painel de consulta comparativa estática para se transformar em um \textbf{Motor de Recomendação Híbrido Plenamente Funcional}.
+
+\subsection{Estratégias de Hibridização segundo Robin Burke (2002)}
+
+Para superar simultaneamente o risco de \textit{Cold Start} da filtragem colaborativa e a falta de novidade (\textit{serendipity}) da filtragem por conteúdo, o sistema implementa duas estratégias fundamentadas na taxonomia clássica de Robin Burke \cite{burke2002}:
+
+\begin{tcolorbox}[burkebox, title={Modelo Híbrido Proposto (Robin Burke, 2002)}]
+\textbf{1. Estratégia Ponderada (\textit{Weighted}):}
+\begin{equation}
+\text{Score Final}_{u,j} = w_1 \cdot \text{Score}_{\text{CBF}}^{\text{norm}}(u, j) + w_2 \cdot \text{Score}_{\text{CF}}^{\text{norm}}(u, j)
+\end{equation}
+\begin{itemize}
+    \item Fusão linear de pontuações de origens distintas previamente normalizadas no intervalo $[0, 1]$.
+    \item Calibração empírica dos pesos: $w_1 = 0{,}40$ (preservação semântica das competências) e $w_2 = 0{,}60$ (captura do comportamento coletivo).
+\end{itemize}
+\vspace{0.2cm}
+\textbf{2. Estratégia de Chaveamento Dinâmico (\textit{Switching}):}
+\begin{equation}
+\text{Modo de Operação}(u) = 
+\begin{cases} 
+\text{CBF (Conteúdo Exclusivo)}, & \text{se } |I_u| = 0 \text{ (Novo Usuário)}, \\
+\text{Fusão Ponderada (CBF} + \text{CF)}, & \text{se } |I_u| > 0 \text{ (Usuário com Histórico)},
+\end{cases}
+\end{equation}
+onde $|I_u|$ denota a quantidade de interações históricas registradas para o usuário $u$.
+\end{tcolorbox}
+
+\subsection{Diagrama Arquitetural do Motor Híbrido}
+
+A Figura~\ref{fig:arquitetura_hibrida} formaliza a arquitetura alvo da Fase 3, destacando a decisão adaptativa de \textit{Switching} e a camada de fusão ponderada com módulo de explicabilidade.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.0cm,
+    block/.style={draw=black!70, rounded corners=3pt, fill=blue!5, font=\footnotesize, align=center, inner sep=6pt},
+    decision/.style={diamond, draw=black!70, fill=orange!15, font=\footnotesize, align=center, inner sep=1pt, aspect=1.8},
+    groupbox/.style={draw=black!40, dashed, rounded corners=6pt, fill=black!2, inner sep=8pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!75},
+    darrow/.style={-{Stealth[length=2.5mm]}, dashed, thick, draw=blue!80}
+]
+
+\node[block, fill=gray!10, text width=3.8cm] (user) {\textbf{Usuário na Sessão}\\Streamlit UI};
+\node[decision, below=9mm of user, text width=3.2cm] (dec_cold) {Usuário possui\\histórico $|I_u| > 0$?};
+
+\node[block, below left=1.6cm and 0.2cm of dec_cold, text width=4.8cm, fill=blue!8] (cbf_engine) {\textbf{Motor CBF (Conteúdo)}\\$\bullet$ Vetor de perfil textual $\mathbf{u}$\\$\bullet$ $\text{Score}_{\text{CBF}}^{\text{norm}} \in [0, 1]$};
+\node[block, below right=1.6cm and 0.2cm of dec_cold, text width=4.8cm, fill=blue!8] (cf_engine) {\textbf{Motor CF (Colaborativo)}\\$\bullet$ Fatores latentes SVD $\hat{y}_{u,i}$\\$\bullet$ $\text{Score}_{\text{CF}}^{\text{norm}} \in [0, 1]$};
+
+\node[block, below=2.4cm of dec_cold, text width=6.2cm, fill=green!10] (fusao) {\textbf{Camada de Fusão Linear Ponderada}\\$\text{Score} = 0{,}40 \cdot \text{Score}_{\text{CBF}}^{\text{norm}} + 0{,}60 \cdot \text{Score}_{\text{CF}}^{\text{norm}}$};
+
+\node[block, below=1.0cm of fusao, text width=5.5cm, fill=purple!8] (ranking) {\textbf{Ordenação Top-$N$ \& Desempate}\\Aplicação de regras de negócio e CTR};
+
+\node[block, below=1.0cm of ranking, text width=6.2cm, fill=yellow!15] (explic) {\textbf{Entrega com Transparência Híbrida (UI)}\\Exposição da contribuição semântica vs. comportamental};
+
+\draw[arrow] (user) -- (dec_cold);
+
+% Decisão
+\draw[arrow] (dec_cold) -| node[above, near start, font=\scriptsize] {Não (Cold Start)} (cbf_engine.north);
+\draw[arrow] (dec_cold) -| node[above, near start, font=\scriptsize] {Sim (Ativo)} (cf_engine.north);
+\draw[arrow] (dec_cold) -| node[above, near start, font=\scriptsize] {Sim (Ativo)} (cbf_engine.north);
+
+\draw[arrow] (cbf_engine.south) |- (fusao.west);
+\draw[arrow] (cf_engine.south) |- (fusao.east);
+
+% Fallback direto CBF
+\draw[darrow] (cbf_engine.west) -- ++(-0.6,0) |- node[near end, left, font=\scriptsize, text=blue!80] {Score isolado em Cold Start} (ranking.west);
+
+\draw[arrow] (fusao) -- (ranking);
+\draw[arrow] (ranking) -- (explic);
+
+\end{tikzpicture}%
+}
+\caption{Arquitetura alvo do Motor Híbrido (Fase 3), combinando chaveamento dinâmico (\textit{Switching}) para imunidade ao Cold Start com fusão linear calibrada (\textit{Weighted}) de Robin Burke.}
+\label{fig:arquitetura_hibrida}
+\end{figure}
+
+% ==============================================================================
+% 5. ARQUITETURA DE INFRAESTRUTURA, DESEMPENHO E EMPACOTAMENTO
+% ==============================================================================
+\section{Arquitetura de Infraestrutura, Desempenho e Empacotamento}
+
+A estabilidade operacional do sistema e a garantia de reprodutibilidade científica por parte dos avaliadores fundamentam-se em três pilares essenciais:
+
+\subsection{Isolamento de Ambiente via Docker}
+
+Para mitigar discrepâncias de versões de bibliotecas em diferentes sistemas operacionais (Linux, macOS e Windows), a aplicação é conteinerizada com Docker:
+\begin{itemize}
+    \item \textbf{Imagem Base:} \texttt{python:3.11-slim}, garantindo uma imagem leve, segura e livre de dependências redundantes de sistema;
+    \item \textbf{Variáveis de Ambiente Críticas:}
+    \begin{itemize}
+        \item \texttt{PYTHONDONTWRITEBYTECODE=1}: Evita a geração de arquivos transitórios \texttt{.pyc}, prevenindo conflitos de escrita nos volumes mapeados;
+        \item \texttt{PYTHONUNBUFFERED=1}: Assegura o direcionamento imediato de saídas de console e mensagens de erro do Streamlit diretamente para o \textit{stdout}.
+    \end{itemize}
+    \item \textbf{Mapeamento de Portas:} Porta 8501 destinada ao painel interativo do Streamlit e porta 8888 alocada para o ambiente Jupyter Lab.
+\end{itemize}
+
+\subsection{Automação com Makefile}
+
+O ciclo de construção, execução e higienização é centralizado no arquivo \texttt{Makefile} (Tabela~\ref{tab:makefile}):
+
+\begin{table}[H]
+\centering
+\caption{Comandos de automação definidos no \texttt{Makefile} do projeto.}
+\label{tab:makefile}
+\begin{tabular}{lp{10cm}}
+\toprule
+\textbf{Comando} & \textbf{Função Técnica} \\
+\midrule
+\texttt{make build} & Constrói a imagem Docker \texttt{recsys-linkedin} compilando dependências isoladas do \texttt{requirements.txt}. \\
+\addlinespace
+\texttt{make dashboard} & Inicia o container com injeção automática da raiz do repositório no \texttt{PYTHONPATH} (\texttt{-e PYTHONPATH=/app}), montagem do volume local e publicação da porta 8501. \\
+\addlinespace
+\texttt{make figuras} & Executa o script de processamento em lote da análise exploratória gerando os artefatos visuais em disco. \\
+\addlinespace
+\texttt{make jupyter} & Sobe o servidor Jupyter Lab em modo sem senha com diretório raiz mapeado. \\
+\addlinespace
+\texttt{make clean} & Executa rotina de higienização de arquivos compilados temporários e caches residuais. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Camada de Cache de Alta Performance em Memória RAM}
+
+Para contornar o gargalo de reexecução integral do script Streamlit a cada evento de interface e garantir \textbf{tempos de resposta inferiores a um segundo}, adotou-se o gerenciamento de cache nativo em memória:
+\begin{enumerate}
+    \item \textbf{\texttt{@st.cache\_resource} (Instanciação de Motores Pesados):} Aplicado nas rotinas \texttt{load\_cbf\_model()} e \texttt{load\_cf\_model()} em \texttt{app/dashboard.py}. Garante que os modelos e matrizes esparsas sejam carregados uma única vez na inicialização, mantendo ponteiros compartilhados em memória RAM;
+    \item \textbf{\texttt{@st.cache\_data} (Leitura de Dados Tabulares):} Aplicado na leitura de catálogos e métricas serializadas, evitando releituras lentas de disco;
+    \item \textbf{Amostragem Otimizada de Segurança:} Redução amostral do universo de 123k vagas para 25k registros no CBF, preservando riqueza semântica e prevenindo estouro de memória (\textit{Out-Of-Memory} -- OOM) em ambientes com recursos moderados.
+\end{enumerate}
+
+% ==============================================================================
+% 6. RASTREABILIDADE COM A BASE DE CÓDIGO E CRITÉRIOS DE ACEITE
+% ==============================================================================
+\section{Rastreabilidade com a Base de Código e Critérios de Aceite}
+
+\subsection{Matriz de Rastreabilidade Arquitetural}
+
+A Tabela~\ref{tab:rastreabilidade} documenta a correspondência unívoca entre os módulos teóricos descritos neste documento e sua implementação física no repositório.
+
+\begin{table}[H]
+\centering
+\caption{Matriz de rastreabilidade entre componentes arquiteturais e código-fonte.}
+\label{tab:rastreabilidade}
+\begin{tabular}{lp{4.2cm}p{6.8cm}}
+\toprule
+\textbf{Componente Arquitetural} & \textbf{Arquivo no Repositório} & \textbf{Responsabilidade de Engenharia} \\
+\midrule
+\textbf{Padrão Fluxo por Aba} & \texttt{app/dashboard.py} & Orquestração das 4 abas, captura de widgets e renderização reativa. \\
+\addlinespace
+\textbf{Pipeline CBF (Aba 2)} & \texttt{src/recomendador.py} & Vetorização TF-IDF, similaridade de cosseno, vetor do perfil do usuário e bônus CTR. \\
+\addlinespace
+\textbf{Pipeline CF (Aba 3)} & \texttt{src/filtragem\_colaborativa.py} & Inferência latente do SVD, histórico das personas e explicabilidade aditiva. \\
+\addlinespace
+\textbf{Pipeline EDA (Aba 1)} & \texttt{src/gerar\_figuras\_eda.py} & Imputação de nulos, consolidação de métricas e validação das 5 hipóteses. \\
+\addlinespace
+\textbf{Auditoria das Métricas (Aba 4)} & \texttt{AUDITORIA\_METRICAS.md} & Fonte primária das métricas auditadas (RMSE, Precision@10, Wilcoxon). \\
+\addlinespace
+\textbf{Isolamento e Execução} & \texttt{Dockerfile} e \texttt{Makefile} & Empacotamento conteinerizado e automação do ciclo de desenvolvimento. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Verificação dos Critérios de Aceite da Issue \#9 (\textit{Definition of Done})}
+
+\begin{itemize}[label=$\boxtimes$, leftmargin=1.5cm]
+    \item \textbf{Conceito de Fluxo por Aba formalizado:} Detalhado como microssistemas independentes com ciclo de vida isolado de entrada, computação e saída.
+    \item \textbf{Os 5 componentes estruturais descritos:} Aplicados e explicados uniformemente nas quatro abas do sistema.
+    \item \textbf{Diagramas das 4 abas incluídos:} Quatro diagramas claros, específicos e compiláveis demonstrando a jornada dos dados.
+    \item \textbf{Salto Arquitetural para a Fase 3 (Híbrida):} Fundamentado através das estratégias Ponderada e de Chaveamento de Robin Burke, com diagrama dedicado.
+    \item \textbf{Infraestrutura e Cache detalhados:} Papel do Docker, automação do Makefile e decorators \texttt{@st.cache\_resource} documentados com foco em estabilidade e performance.
+    \item \textbf{Alinhamento estrito com o código:} Nenhuma discrepância entre a teoria descrita e a implementação de \texttt{app/dashboard.py}.
+\end{itemize}
+
+% ==============================================================================
+% REFERÊNCIAS BIBLIOGRÁFICAS (ABNT)
+% ==============================================================================
+\begin{thebibliography}{9}
+
+\bibitem{aggarwal}
+AGGARWAL, C. C. \textbf{Recommender Systems: The Textbook}. New York: Springer, 2016.
+
+\bibitem{burke2002}
+BURKE, R. Hybrid recommender systems: Survey and experiments. \textbf{User Modeling and User-Adapted Interaction}, v. 12, n. 4, p. 331--370, 2002.
+
+\bibitem{grouplens}
+RESNICK, P. et al. GroupLens: an open architecture for collaborative filtering of netnews. In: \textbf{Proceedings of CSCW '94}. ACM, 1994. p. 175--186.
+
+\bibitem{koren}
+KOREN, Y.; BELL, R.; VOLINSKY, C. Matrix factorization techniques for recommender systems. \textbf{Computer}, v. 42, n. 8, p. 30--37, 2009.
+
+\bibitem{ndcg}
+JÄRVELIN, K.; KEKÄLÄINEN, J. Cumulated gain-based evaluation of IR techniques. \textbf{ACM Transactions on Information Systems}, v. 20, n. 4, p. 422--446, 2002.
+
+\bibitem{wilcoxon}
+WILCOXON, F. Individual comparisons by ranking methods. \textbf{Biometrics Bulletin}, v. 1, n. 6, p. 80--83, 1945.
+
+\bibitem{surprise}
+HUG, N. Surprise: a Python library for recommender systems. \textbf{Journal of Open Source Software}, v. 5, n. 52, 2174, 2020.
+
+\bibitem{lgpd}
+BRASIL. \textbf{Lei nº 13.709, de 14 de agosto de 2018}. Lei Geral de Proteção de Dados Pessoais (LGPD). Diário Oficial da União, Brasília, 2018.
+
+\bibitem{tdsp}
+MICROSOFT. \textbf{Team Data Science Process (TDSP) Documentation}. Microsoft Learn, 2020. Disponível em: \url{https://learn.microsoft.com/azure/architecture/data-science-process/}.
+
+\end{thebibliography}
+
+\end{document}
