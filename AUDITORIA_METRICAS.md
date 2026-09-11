@@ -51,7 +51,7 @@ Recomputando com as MESMAS definições do notebook (dados commitados de hoje):
 |---|---|---|
 | H1: "média de **44,6** vs **20,4** candidaturas" | **20,8 vs 6,7** | ❌ não reproduz (direção confirmada: remoto ≈ 3× mais) |
 | H2: "Sênior **$118.900** vs Júnior **$58.300**" | medianas: Mid-Senior **$107.500** vs Entry **$52.200** (razão 2,06) | ❌ não reproduz (direção confirmada: >2×) |
-| H5: "plenas lideram com **39,6%**" | Mid-Senior = **31,1%** | ❌ não reproduz |
+| H5: "plenas lideram com **39,6%**" | Mid-Senior = **31,1%** | ❌ ~~não reproduz~~ **FALSO POSITIVO da auditoria** — ver Resolução abaixo |
 
 **Causa provável**: os números foram gravados no README/tex a partir de uma
 versão anterior do dataset ou de limpeza anterior; a célula 8 do notebook não
@@ -72,6 +72,30 @@ Recomputado com média de ratings do dataset INTEIRO e catálogo completo: 0,868
 O valor reportado usa só o TRAIN e pool de 2000 itens — **não é erro**, mas o
 relatório deve especificar exatamente pool e fonte das médias, senão o número
 parece irreproduzível na banca.
+
+### ✅ Resolução — Sprint 0 (11–12/09/2026)
+
+- **A1 (H1/H2):** `eda_linkedin.ipynb` re-executado com outputs commitados e
+  figuras regeneradas (`gerar_figuras_eda.py`). README, PRD e `relatorio_eda.tex`
+  sincronizados com os valores do notebook: H1 média **20,8 vs 6,7** (mediana
+  6,0 vs 2,0); H2 em **medianas** $107.500 vs $52.213 (razão 2,06×), com nota
+  sobre médias contaminadas por outliers (estágio: média $963 mil).
+- **A1 (H5) — falso positivo desta auditoria:** a linha "plenas lideram com
+  39,6%" comparou "plenas" com *Mid-Senior*; no material do projeto **"Pleno" =
+  *Associate***, que de fato lidera com **39,60%** (reconfirmado no notebook
+  re-executado e no item 10 da tabela de reproduzíveis). H5 não precisou de
+  alteração. Lição: conferir o dicionário PT-BR ↔ enum do dataset antes de
+  marcar ❌.
+- **A2:** DECISOES.md corrigido (esparsidade ~98,0% · ~100 ratings/item, ~80 no
+  treino · correlação +0,21).
+- **A3:** nota metodológica adicionada na aba Comparativo do dashboard (pool de
+  2.000, médias do TRAIN).
+- **Limitação 2 (CBF sem métrica):** resolvida — `src/avaliar_cbf.py` +
+  `metadados_cbf.pkl` no mesmo protocolo (P@10 0,882 · NDCG@10 0,750); Decisão B6.
+- **Piso de ruído:** agora é calculado pelo pipeline (`rmse_oraculo` =
+  **0,5214**, consistente com o 0,52 estimado aqui); Decisão B7.
+- **Limitações 1 e 4 (self-fulfilling, dados sintéticos):** declaradas na nova
+  página do dashboard "Como avaliamos & limitações" (Modo Avaliador).
 
 ---
 
