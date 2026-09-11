@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📚 Guia Central das Etapas (TDSP & Documentação)
+    url: https://github.com/Matheus-Nardi/linkedin-RecSys/blob/main/docs/etapas/README.md
+    about: Consulte as orientações metodológicas completas, fórmulas matemáticas e critérios de aceite do projeto.
+  - name: 📊 Auditoria de Métricas & Baselines
+    url: https://github.com/Matheus-Nardi/linkedin-RecSys/blob/main/AUDITORIA_METRICAS.md
+    about: Números auditados, testes de significância (Wilcoxon) e comparativo de modelos.
