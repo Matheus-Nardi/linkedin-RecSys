@@ -259,8 +259,20 @@ def _carregar_catalogo(verdade, df_interacoes, data_dir):
 
 
 def carregar_metricas(data_dir="data/processed"):
-    """Métricas da avaliação (executar_modelagem.py) para exibição."""
-    return joblib.load(os.path.join(data_dir, "metadados_cf.pkl"))
+    """Métricas da avaliação (executar_modelagem.py) para exibição.
+
+    Mescla, se existir, a avaliação da CBF (avaliar_cbf.py) no mesmo dicionário.
+    O timestamp da CBF é renomeado para 'gerado_em_cbf' para não sobrescrever o
+    do CF.
+    """
+    metricas = joblib.load(os.path.join(data_dir, "metadados_cf.pkl"))
+    caminho_cbf = os.path.join(data_dir, "metadados_cbf.pkl")
+    if os.path.exists(caminho_cbf):
+        cbf = joblib.load(caminho_cbf)
+        if "gerado_em" in cbf:
+            cbf["gerado_em_cbf"] = cbf.pop("gerado_em")
+        metricas.update(cbf)
+    return metricas
 
 
 if __name__ == "__main__":
