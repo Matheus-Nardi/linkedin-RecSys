@@ -78,7 +78,7 @@ $$\hat{y} = \mu + b_u + b_i + q_i^T p_u$$
 
 ### 3.5 Previsão
 **O que é:** dar nota prevista para TODAS as vagas que o usuário ainda não
-viu, ordenar da maior para a menor e mostrar o Top-10. É o que a aba
+viu, ordenar da maior para a menor e mostrar o Top-10. É o que a página
 "Filtragem Colaborativa" do dashboard faz ao vivo.
 
 ---
@@ -95,12 +95,12 @@ gerado pelos scripts, em cadeia:
 Se alguém duvidar de um número na tela, é só rodar o script de novo e conferir.
 
 ### 4.2 O teste de 30 segundos que VOCÊ pode fazer na tela
-1. Abra a aba **👥 Filtragem Colaborativa** e escolha um usuário cuja persona é
-   **💻 Tech & Dados** → as recomendações devem ser cheias de "Analyst",
+1. Abra a página **Filtragem Colaborativa (SVD)** (menu na sidebar) e escolha um usuário cuja persona é
+   **Tech & Dados** → as recomendações devem ser cheias de "Analyst",
    "Engineer", "Developer". Se vier "Marketing Coordinator" no topo, algo está errado.
-2. Escolha um usuário **🌐 Remoto** → quase todas as vagas do Top-10 devem ter
-   o selo 🌍 Sim na coluna "Remoto?".
-3. Olhe a aba **⚖️ Comparativo**: o RMSE do SVD (0,625) deve ser MENOR que o da
+2. Escolha um usuário **Remoto** → quase todas as vagas do Top-10 devem ter
+   "Sim" na coluna "Remoto?".
+3. Olhe a página **Comparativo CBF × CF**: o RMSE do SVD (0,625) deve ser MENOR que o da
    média global (1,578). Menor = melhor. É isso que prova que o modelo aprendeu.
 
 Esses 3 testes foram executados por verificação automática e passaram:
