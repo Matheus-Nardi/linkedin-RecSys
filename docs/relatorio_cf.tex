@@ -1,0 +1,401 @@
+\documentclass[12pt,a4paper]{article}
+% Compilar a partir da raiz do repositório: pdflatex docs/relatorio_cf.tex
+% (os caminhos das figuras são relativos à raiz do projeto)
+
+% --- Pacotes ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\geometry{top=3cm, bottom=2cm, left=3cm, right=2cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath, amssymb}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{setspace}
+\onehalfspacing
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black
+}
+
+\begin{document}
+
+% ==========================================
+% CAPA
+% ==========================================
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    {\large \textbf{UNIVERSIDADE ESTADUAL DO TOCANTINS -- UNITINS}}\\[0.5cm]
+    {\large CURSO DE SISTEMAS DE INFORMAÇÃO}\\[0.5cm]
+    {\large DISCIPLINA: TÓPICOS EM SISTEMAS DE RECOMENDAÇÃO}\\[3.5cm]
+
+    {\Large \textbf{FILTRAGEM COLABORATIVA COM DADOS SINTÉTICOS:}}\\[0.3cm]
+    {\large \textbf{comparação entre KNN e SVD em um sistema de recomendação de vagas}}\\[3.5cm]
+
+    % TODO: preencher os nomes dos integrantes do grupo
+    \begin{flushright}
+        \textbf{Autores:} Autor 1, Autor 2, Autor 3, Autor 4, Autor 5\\
+        \textbf{Docente:} Profa. da Disciplina
+    \end{flushright}
+
+    \vfill
+    {\large Palmas -- TO}\\
+    {\large 2026}
+\end{titlepage}
+
+% ==========================================
+% SUMÁRIO
+% ==========================================
+\tableofcontents
+\thispagestyle{empty}
+\newpage
+\setcounter{page}{1}
+
+% ==========================================
+% 1. INTRODUÇÃO
+% ==========================================
+\section{Introdução}
+
+Este relatório documenta a etapa de \textbf{filtragem colaborativa} do nosso sistema de recomendação de vagas, construído ao longo da disciplina sobre a base \textit{LinkedIn Job Postings} (2023--2024), com mais de 123 mil anúncios reais. O projeto começou com uma análise exploratória do mercado de vagas e, em seguida, implementou a filtragem baseada em conteúdo (CBF). Aqui relatamos o que veio depois: a decisão de gerar usuários sintéticos, a modelagem dos algoritmos colaborativos, a avaliação com métricas formais e a integração de tudo isso no dashboard.
+
+\subsection{De onde veio a necessidade}
+
+Na entrega anterior, apresentamos o recomendador por conteúdo: o perfil do usuário era montado a partir das habilidades e vagas que ele marcava como de interesse, e o ranqueamento combinava similaridade do cosseno com a taxa de conversão de cada vaga ($\text{CTR} = \frac{\text{candidaturas}}{\text{visualizações}}$). A análise exploratória havia mostrado que o CTR médio das vagas remotas (20,6\%) supera o das presenciais (16,5\%), e que vagas remotas atraem, em média, cerca de três vezes mais candidaturas que as presenciais (20,8 contra 6,7). Era uma métrica de engajamento útil, e o feedback da professora indicou que o sistema estava maduro para o próximo passo: a filtragem colaborativa.
+
+Só que havia um obstáculo. Filtragem colaborativa aprende com o histórico de interações entre pessoas e itens: quem avaliou o quê, com qual nota. E a nossa base não tem nada disso. O \textit{dataset} do LinkedIn registra anúncios, não pessoas; não existem usuários, muito menos notas. Além disso, coletar dados reais de candidatos violaria a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 \cite{lgpd}), já que comportamento de busca por emprego é dado pessoal. Ficamos então com um problema concreto: \textbf{como treinar e avaliar um modelo colaborativo sem nenhum histórico de interações?}
+
+\subsection{A saída escolhida}
+
+A resposta foi simular o que não podíamos coletar. Criamos 5.000 usuários sintéticos, cada um construído a partir de perfis de interesse observados na análise exploratória (quem busca apenas vagas remotas, quem procura vagas de ciência de dados, e assim por diante), e fizemos esses usuários interagir com um catálogo de 6.000 vagas do \textit{dataset} real. O resultado é uma matriz de utilidade com 602.216 interações sobre a qual treinamos dois algoritmos clássicos de filtragem colaborativa, o KNN \textit{user-based} e o SVD, e contra os quais montamos uma avaliação com baselines, métricas de ranking e teste estatístico.
+
+A escolha por dados sintéticos tem uma consequência metodológica que vale registrar desde já: como o gerador \textit{conhece} a afinidade verdadeira entre cada usuário e cada vaga, conseguimos avaliar o ranqueamento contra a resposta certa, inclusive para vagas que o usuário nunca viu. Isso elimina o problema clássico dos negativos não observados, mas cria um viés próprio, discutido na Seção~\ref{sec:limitacoes}.
+
+\subsection{Estrutura}
+
+A Seção~\ref{sec:fundamentacao} posiciona os dois algoritmos e o problema da esparsidade. A Seção~\ref{sec:sinteticos} descreve a geração dos dados. As Seções~\ref{sec:modelagem} e~\ref{sec:avaliacao} apresentam a modelagem e o protocolo de avaliação. A Seção~\ref{sec:resultados} traz os resultados, e a Seção~\ref{sec:dashboard} mostra a aplicação no dashboard. A Seção~\ref{sec:ia} discute o uso de inteligência artificial no desenvolvimento do código e o registro de decisões que mantinha o processo sob controle. A Seção~\ref{sec:limitacoes} declara as limitações do experimento.
+
+% ==========================================
+% 2. FUNDAMENTAÇÃO
+% ==========================================
+\section{Fundamentação: memória contra modelo}\label{sec:fundamentacao}
+
+Os métodos colaborativos se dividem em duas famílias \cite{aggarwal}. Os métodos \textbf{baseados em memória} guardam a matriz de interações e calculam similaridades diretamente sobre ela: o KNN \textit{user-based} \cite{grouplens} encontra usuários com gostos parecidos com o do alvo e combina as notas que esses vizinhos deram. Os métodos \textbf{baseados em modelo} aprendem uma representação comprimida dos dados; a fatoração por valores singulares (SVD) \cite{koren} resume cada usuário e cada vaga em vetores de números latentes e prevê a nota pelo produto entre os vetores.
+
+O problema da esparsidade é o que separa as duas famílias na prática. Numa matriz de usuários por vagas, cada pessoa interage com uma fração minúscula do catálogo. Para o KNN funcionar, dois usuários parecidos precisam ter avaliado \textbf{as mesmas vagas} --- é só assim que a similaridade entre eles significa algo. Em catálogos grandes, essa sobreposição é rara. O SVD contorna o problema de outra forma: os fatores latentes funcionam como um ``DNA do gosto'' que o algoritmo aprende a partir de todas as interações ao mesmo tempo, e a previsão existe para qualquer par (usuário, vaga), mesmo sem nenhuma coavaliação. Uma parte da variância também é absorvida por termos de viés, que capturam usuários que dão notas altas e vagas que são bem avaliadas por todos.
+
+Essa era exatamente a previsão teórica para o nosso caso: com 5.000 usuários e milhares de vagas, a chance de dois usuários sintéticos terem aplicado para a mesma vaga seria pequena, e o KNN deveria sofrer. O experimento confirmou --- mas, como mostram as Seções~\ref{sec:ia} e~\ref{sec:resultados}, a primeira versão dos dados derrubou \textbf{os dois} algoritmos, e não só o KNN.
+
+% ==========================================
+% 3. DADOS SINTÉTICOS
+% ==========================================
+\section{Geração dos usuários e interações sintéticos}\label{sec:sinteticos}
+
+O gerador de dados passou por três versões. A versão final (v3) resulta de um ciclo de diagnóstico e correção que descrevemos na Seção~\ref{sec:ia}; aqui apresentamos o modelo como ficou, com a justificativa de cada escolha.
+
+\subsection{Por que usuários com perfil, e não aleatórios}
+
+Cada um dos 5.000 usuários sintéticos é construído sobre uma de quatro personas, derivadas dos segmentos que a análise exploratória identificou no mercado de vagas:
+
+\begin{table}[H]
+\centering
+\caption{Personas primárias e proporção de usuários de cada uma.}
+\begin{tabular}{llc}
+\toprule
+\textbf{Persona} & \textbf{Interesse dominante} & \textbf{Usuários} \\
+\midrule
+P1 -- Remoto & apenas vagas em modalidade remota & 25\% \\
+P2 -- Tech \& Dados & vagas de tecnologia e ciência de dados & 35\% \\
+P3 -- Sênior/Liderança & cargos de liderança e senioridade alta & 20\% \\
+P4 -- Júnior/Estágio & vagas de entrada & 20\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Usuários reais não são 100\% de uma coisa só, então a persona não é um rótulo binário: cada usuário recebe um vetor de preferências contínuo $w_u \in [0,1]^4$, em que a persona principal recebe peso entre 0,55 e 0,70 e as outras três dividem o restante por uma distribuição de Dirichlet. Um usuário ``Tech \& Dados'' com peso 0,6 ainda tem 0,4 de interesse espalhado entre remoto, sênior e júnior. Essa sobreposição gradual entre perfis é o que dá aos vizinhos do KNN algo em comum, e aos fatores latentes do SVD, dimensionalidade real para capturar.
+
+\subsection{Catálogo de vagas: a redução de 25.000 para 6.000}
+
+A primeira versão do gerador amostrava vagas de toda a base (25.000). O efeito sobre o KNN foi devastador: com 25.000 itens e 5.000 usuários, cada item recebia em média cerca de 4,5 notas no treino, e a chance de dois usuários parecidos terem avaliado a mesma vaga era praticamente nula --- 79,8\% das previsões do KNN caíam no \textit{fallback} da biblioteca, que devolve a média global quando não há vizinhos (detalhes na Seção~\ref{sec:ia}).
+
+A correção foi reduzir o catálogo para 6.000 vagas, amostradas de forma estratificada para garantir no mínimo 700 vagas compatíveis com cada persona. Com isso, cada item passa a ter cerca de 100 avaliações no total (aproximadamente 80 no treino), criando a sobreposição que o KNN precisa. A esparsidade da matriz cai de 99,90\% para 97,99\% --- continua altíssima, e de propósito: esparsidade extrema é a condição realista em que a filtragem colaborativa opera, e mantê-la de pé era parte do exercício.
+
+\subsection{Afinidade verdadeira}
+
+O coração do gerador é um \textit{score} contínuo de afinidade entre cada usuário e cada vaga:
+\begin{equation}
+\text{aff}(u, j) = \text{clip}\left(\frac{w_u \cdot b_j - 0{,}05}{0{,}65},\ 0,\ 1\right),
+\end{equation}
+em que $b_j \in \{0,1\}^4$ é o vetor de atributos da vaga (remota, tech, sênior, júnior) e $w_u \cdot b_j$ mede o encaixe entre o que o usuário prefere e o que a vaga oferece. Uma vaga é considerada \textbf{relevante} para um usuário quando $\text{aff}(u,j) \geq 0{,}60$, limiar calibrado para que cerca de 35\% do catálogo seja relevante para cada usuário.
+
+A forma bilinear não é acidental: $\text{aff} \approx w_u \cdot b_j$ é exatamente a estrutura que o SVD aprende a reconstruir. O gerador, portanto, conhece a resposta certa de todo par (usuário, vaga) --- incluindo pares que nunca geram interação ---, e é contra essa verdade que as métricas de ranking são calculadas.
+
+\subsection{Exposição não é opinião}
+
+A decisão mais importante do gerador separa dois processos que a primeira versão misturava:
+
+\begin{itemize}
+    \item \textbf{Exposição} --- quais vagas o usuário vê. Segue um sorteio ponderado por $\text{softmax}\left(\frac{0{,}15\,\text{aff} + 0{,}85\,G}{T}\right)$, com $T = 0{,}25$ e $G$ a popularidade da vaga (candidaturas normalizadas por $\log 1p$), gerando de 80 a 160 exposições por usuário. Ou seja: o usuário vê muita vaga \textbf{popular}, inclusive as que não combinam com ele.
+    \item \textbf{Opinião} --- a nota que ele dá ao que viu, que reflete só a afinidade:
+    \begin{equation}
+    r_{ui} = \text{clip}\left(\text{round}\left(1 + 4\,\text{aff}(u,i) + \varepsilon\right),\ 1,\ 5\right), \qquad \varepsilon \sim \mathcal{N}(0,\ \sigma^2), \qquad \sigma = 0{,}55.
+    \end{equation}
+\end{itemize}
+
+Essa separação resolve um defeito que anulava a primeira versão dos dados: se o usuário só vê o que gosta, todas as notas observadas são altas (na v1, cerca de 90\% delas eram 4 ou 5), e um preditor trivial --- ``chutar a média das notas de cada vaga'' --- se torna quase imbatível, porque não há sinal negativo para o modelo aprender. Com exposição dominada pela popularidade, o usuário vê e rejeita vagas fora do seu perfil: na distribuição final, 39\% das notas observadas são 1 ou 2, 11\% são 3 e 50\% são 4 ou 5. A correlação entre relevância e popularidade cai para $+0{,}21$ --- baixa o bastante para popularidade e preferência não serem a mesma coisa.
+
+Do tipo de nota deriva o tipo de interação: notas $\geq 4$ simulam candidatura, nota 3 simula interesse, notas $\leq 2$ simulam descarte. O produto final do gerador é a tabela de interações (\texttt{interacoes\_sinteticas.csv}) com 602.216 linhas, mais os arquivos de catálogo e de afinidade verdadeira usados na avaliação.
+
+% ==========================================
+% 4. MODELAGEM
+% ==========================================
+\section{Modelagem}\label{sec:modelagem}
+
+A matriz de utilidade tem 5.000 linhas (usuários), 6.000 colunas (vagas) e 602.216 células preenchidas --- densidade de 2\%. Dividimos as interações em 80\% treino e 20\% teste em um único \textit{split} aleatório com semente fixa, o que resulta em 120.444 notas reservadas para teste. Um conjunto de teste desse tamanho dá ao RMSE um erro padrão de aproximadamente 0,004, de modo que qualquer diferença relevante entre modelos não pode ser ruído do \textit{split}; avaliamos essa escolha contra a alternativa (validação cruzada em $k$ partições) e concluímos que ela triplicaria o custo sem mudar conclusão alguma, além de o teste estatístico pareado da Seção~\ref{sec:avaliacao} cobrir a questão da significância.
+
+Todos os modelos foram implementados com a biblioteca Surprise \cite{surprise}, que implementa os estimadores clássicos de filtragem colaborativa.
+
+\subsection{KNN \textit{user-based}}
+
+O KNN calcula similaridade do cosseno entre usuários sobre o conjunto de itens que avaliaram em comum, com suporte mínimo de 5 avaliações em comum: um par de usuários só é considerado se compartilhar pelo menos 5 itens. Para prever a nota de um alvo, o modelo localiza os vizinhos mais similares que avaliaram a vaga e combina as notas deles. O modelo tem um comportamento que precisamos explicitar: quando nenhum vizinho avaliou a vaga, a biblioteca devolve a média global como previsão. Contamos essas previsões ``impossíveis'' separadamente, porque na primeira versão do experimento elas eram a maioria silenciosa do resultado (Seção~\ref{sec:ia}).
+
+\subsection{SVD com vieses}
+
+O SVD decompõe a matriz de notas em fatores latentes e prevê por
+\begin{equation}\label{eq:svd}
+\hat{r}_{ui} = \mu + b_u + b_i + q_i^{\top} p_u,
+\end{equation}
+em que $\mu$ é a média global das notas, $b_u$ é o viés do usuário (tendência a dar notas altas ou baixas), $b_i$ é o viés da vaga (reputação média) e $q_i^{\top} p_u$ é o produto entre o vetor latente da vaga e o do usuário --- o casamento entre o ``DNA'' do usuário e o da vaga. Treinamos com 20 épocas, taxa de aprendizado 0,005 e regularização 0,02, e testamos 20, 50 e 100 fatores latentes no mesmo conjunto de teste, escolhendo o melhor: 20 fatores. Escolher hiperparâmetro olhando o teste não é ideal e declaramos isso como limitação (Seção~\ref{sec:limitacoes}); com 120 mil pontos de teste, porém, o viés introduzido é desprezível diante das diferenças observadas.
+
+\subsection{Por que esperávamos que o SVD vencesse}
+
+A fórmula~\eqref{eq:svd} produz previsão para todo par (usuário, vaga) do universo, exista interação ou não. O KNN, ao contrário, depende de coavaliação: sem vizinhos que tenham avaliado a mesma vaga, não há de onde tirar a previsão. Na nossa matriz, com esparsidade de 98\%, a vantagem estrutural do modelo baseado em fatores latentes \cite{koren} deveria aparecer com clareza. É o que os resultados mostram --- com uma ressalva importante sobre a primeira versão dos dados.
+
+% ==========================================
+% 5. AVALIAÇÃO
+% ==========================================
+\section{Protocolo de avaliação}\label{sec:avaliacao}
+
+\subsection{Baselines triviais}
+
+A lição mais cara do projeto: sem baselines, qualquer RMSE parece bom. Todo modelo é comparado com três chutes triviais --- a média global das notas, a média por usuário e a média por item --- e, no ranking, com duas ordens triviais: aleatória e por popularidade da vaga. Um modelo só é considerado bom se vencer o chute.
+
+\subsection{Métricas de erro e de ranking}
+
+Avaliamos duas famílias de métricas, porque medem coisas diferentes.
+
+\textbf{RMSE e MAE} medem o erro da nota prevista na escala de 1 a 5. Quanto \textbf{menor}, melhor. O RMSE penaliza erros grandes mais que o MAE, porque o erro entra ao quadrado:
+\begin{equation}
+\text{RMSE} = \sqrt{\frac{1}{|\mathcal{T}|} \sum_{(u,i) \in \mathcal{T}} \left(\hat{r}_{ui} - r_{ui}\right)^2}.
+\end{equation}
+
+\textbf{Precision@\textit{K} e NDCG@\textit{K}} medem a qualidade do \textit{ranqueamento}, que é o que um sistema de recomendação realmente entrega: um modelo pode errar a nota exata e ainda assim colocar as vagas certas no topo. A Precision@\textit{K} pergunta ``das $K$ vagas recomendadas, quantas eram realmente relevantes?'' --- quanto \textbf{maior}, melhor. O NDCG@\textit{K} \cite{ndcg} também premia acertos, mas com ganho graduado e posição: uma vaga nota 5 no topo vale mais que uma nota 4, e acertos nas primeiras posições valem mais que nas últimas:
+\begin{equation}
+\text{NDCG@}K = \frac{\text{DCG@}K}{\text{IDCG@}K}, \qquad \text{DCG@}K = \sum_{p=1}^{K} \frac{\text{rel}_p}{\log_2(p+1)},
+\end{equation}
+em que IDCG é o DCG da ordenação ideal. As duas métricas variam entre 0 e 1, e calculamos para $K \in \{5, 10, 20\}$; reportamos $K = 10$, que é o tamanho da lista exibida no dashboard.
+
+\subsection{Como definimos ``relevante'' sem trapacear}
+
+Avaliar ranking exige saber o que o usuário \textbf{gostaria} de ter visto, e não apenas o que ele viu --- uma vaga não vista não é uma vaga que ele rejeitaria. Como o gerador conhece $\text{aff}(u,j)$ de todo par, usamos essa verdade completa: relevante é vaga com afinidade $\geq 0{,}60$, para 1.000 usuários amostrados (250 de cada persona). Para cada usuário, o pool de candidatos é formado por 2.000 vagas aleatórias não vistas no treino, sem superamostragem de relevantes. Com cerca de 35\% do pool sendo relevante por construção, um ranqueador aleatório acerta Precision@10 $\approx 0{,}35$ --- e é exatamente contra esse piso que os modelos precisam provar valor. A versão anterior do protocolo montava o pool com todas as relevantes mais preenchimento, o que inflava até o aleatório a 0,43 e escondia as diferenças entre modelos; a correção está documentada no arquivo de decisões do projeto.
+
+\subsection{Significância estatística}
+
+A comparação SVD contra KNN usa teste de Wilcoxon pareado \cite{wilcoxon} sobre os erros ao quadrado das previsões no conjunto de teste, pareando apenas os pares em que ambos os modelos produziram previsão própria --- as previsões de \textit{fallback} do KNN ficam de fora (119.828 pares na prática). A pergunta que ele responde é: a diferença observada é real, ou poderia ter surgido por acaso? Consideramos significativo $p < 0{,}05$.
+
+% ==========================================
+% 6. RESULTADOS
+% ==========================================
+\section{Resultados}\label{sec:resultados}
+
+\subsection{Erro de previsão}
+
+\begin{table}[H]
+\centering
+\caption{RMSE no conjunto de teste (120.444 notas). Menor é melhor.}
+\begin{tabular}{lc}
+\toprule
+\textbf{Modelo} & \textbf{RMSE} \\
+\midrule
+Média global (baseline) & 1,578 \\
+Média por usuário (baseline) & 1,575 \\
+Média por item (baseline) & 1,320 \\
+KNN \textit{user-based} (cosseno) & 1,263 \\
+\textbf{SVD (20 fatores)} & \textbf{0,625} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{data/figuras/comparativo_modelos_cf.png}
+\caption{Comparação de erro entre baselines e modelos. O SVD reduz o RMSE em 60\% em relação ao chute da média global.}
+\label{fig:comparativo}
+\end{figure}
+
+Os dois modelos vencem os três baselines, o que na primeira versão dos dados não acontecia com nenhum deles. O SVD erra por 0,625 pontos em média numa escala de 1 a 5; o KNN erra por 1,263.
+
+\subsection{Qualidade do ranking}
+
+\begin{table}[H]
+\centering
+\caption{Métricas de ranking em pool aleatório de 2.000 vagas não vistas (1.000 usuários, 250 por persona). Maior é melhor.}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Método} & \textbf{Precision@10} & \textbf{NDCG@10} \\
+\midrule
+Aleatório (baseline) & 0,352 & -- \\
+Popularidade (baseline) & 0,785 & -- \\
+KNN \textit{user-based} & 0,874 & 0,894 \\
+\textbf{SVD (20 fatores)} & \textbf{1,000} & \textbf{0,9997} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{data/figuras/metricas_ranking_cf.png}
+\caption{Precision@10 por método. O piso aleatório do pool é 0,352; o SVD coloca 10 de 10 vagas relevantes no topo.}
+\label{fig:ranking}
+\end{figure}
+
+\subsection{O que sustenta esses números}
+
+Três verificações separam o resultado de ``números bonitos sem sentido'':
+
+\textbf{O piso de ruído.} O gerador adiciona ruído gaussiano ($\sigma = 0{,}55$) às notas, e isso impõe um limite teórico: mesmo um oráculo que conhecesse a afinidade exata de cada par erraria RMSE $\approx 0{,}52$ (limite que estimamos simulando esse oráculo sobre os dados gerados, já incorporando arredondamento e truncamento das notas). Entre o chute da média (1,578) e o oráculo (0,52), o SVD, com 0,625, capturou cerca de 90\% de todo o erro redutível dos dados. Não existe espaço para um resultado muito melhor no nosso conjunto --- e é por isso que as métricas fazem sentido.
+
+\textbf{As previsões ``impossíveis'' do KNN.} No experimento final, apenas 0,5\% das previsões do KNN (616 de 120.444) caíram no \textit{fallback} da média global --- abaixo do critério de aceitação de 5\% que estabelecemos. A comparação com o SVD, portanto, compara modelo com modelo, e não modelo com placebo.
+
+\textbf{Significância.} O teste de Wilcoxon pareado sobre os 119.828 pares em que ambos produziram previsão própria rejeita a hipótese de igualdade com $p \approx 0$: a diferença entre SVD (0,625) e KNN (1,263) não é ruído.
+
+\subsection{Precision@10 = 1,0: o que isso significa e o que não significa}
+
+O SVD acertou todas as 10 vagas do topo para todos os 1.000 usuários avaliados. Um número assim pede honestidade imediata: ele é bom \textbf{porque os dados são sintéticos e o sinal é forte}. A relevância é definida pela estrutura de personas ($\text{aff} = w_u \cdot b_j$), que é bilinear --- a mesma forma funcional que o SVD ajusta. O resultado prova que a \textbf{metodologia de avaliação funciona} --- o modelo recupera a verdade que está nos dados, quando ela existe --- e não que o sistema teria Precision@10 em produção com dados reais, em que preferências são ruidosas, dinâmicas e nada bilineares. A Seção~\ref{sec:limitacoes} volta a isso.
+
+\subsection{Critérios de aceitação}
+
+Estabelecemos critérios objetivos antes de declarar o experimento bem-sucedido; todos foram verificados automaticamente pelo script de modelagem:
+
+\begin{table}[H]
+\centering
+\caption{Critérios de aceitação do experimento final.}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Critério} & \textbf{Alvo} & \textbf{Resultado} \\
+\midrule
+Previsões impossíveis do KNN & $< 5\%$ & 0,5\% \\
+RMSE (SVD e KNN) abaixo da média global & sim & 0,625 e 1,263 $<$ 1,578 \\
+SVD ao menos 5\% abaixo da média global & sim & 60,4\% abaixo \\
+Precision@10 (SVD, KNN) acima do aleatório & sim & 1,000 e 0,874 $>$ 0,352 \\
+SVD acima do baseline de popularidade & sim & 1,000 $>$ 0,785 \\
+NDCG@10 (SVD, KNN) acima de 0,70 & sim & 0,9997 e 0,894 \\
+Diferença SVD vs.\ KNN significativa & $p < 0{,}05$ & $p \approx 0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==========================================
+% 7. DASHBOARD
+% ==========================================
+\section{Dashboard: a teoria na tela}\label{sec:dashboard}
+
+O dashboard Streamlit integra as etapas do projeto em quatro abas, e as duas últimas implementam a filtragem colaborativa descrita neste relatório. Tudo que aparece na tela vem de arquivos gerados pela cadeia \texttt{executar\_simulacao.py} $\rightarrow$ \texttt{executar\_modelagem.py} $\rightarrow$ \texttt{modelo\_svd.pkl}/\texttt{metadados\_cf.pkl} --- nada é digitado à mão. Verificação independente confirmou que a fórmula de previsão implementada no dashboard produz resultados idênticos à API do Surprise (diferença 0,0 em 120 pares conferidos).
+
+Na aba de filtragem colaborativa, o usuário seleciona um dos 5.000 usuários sintéticos e vê, em sequência, o caminho completo do aprendizado:
+
+\begin{itemize}
+    \item \textbf{Perfil aprendido.} Um gráfico mostra a mistura de personas do usuário --- os pesos de $w_u$ inferidos pelo modelo, e não a persona com que ele foi criado. É a diferença conceitual central em relação à CBF: aqui o perfil não é declarado, é aprendido do histórico de notas.
+    \item \textbf{Histórico de interações.} As avaliações simuladas do usuário, com a nota que ele deu a cada vaga. A tabela inclui a coluna \textbf{Persona da vaga}, que é um atributo da vaga, não do usuário: no catálogo, cada vaga recebe flags indicando a qual persona ela melhor se encaixa (remota, tech, sênior, júnior). A coluna deixa visível se o modelo aprendeu o perfil --- se as notas altas do usuário se concentram nas vagas de uma mesma persona e as baixas nas demais.
+    \item \textbf{Recomendações previstas pelo SVD.} O Top-$N$ de vagas não vistas, ordenado pela nota prevista pela Equação~\eqref{eq:svd}. Um painel de explicabilidade decompõe cada previsão em $\mu + b_u + b_i + q_i^{\top} p_u$: média global, viés do usuário, viés da vaga e o casamento latente. A mesma previsão que seria uma caixa-preta vira quatro conceitos de aula somados.
+\end{itemize}
+
+A aba comparativa (CBF $\times$ CF) fecha o ciclo: uma tabela qualitativa compara as duas abordagens (sinal usado, comportamento no \textit{cold start}, serendipidade) e apresenta as métricas da Seção~\ref{sec:resultados} exportadas pela modelagem, provando que os números que justificam o SVD são os mesmos que aparecem na tela.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{assets/sistema.png}
+\caption{Dashboard Streamlit do sistema, integrando as visões de negócio (EDA), o simulador CBF, a filtragem colaborativa e o comparativo entre as duas abordagens.}
+\label{fig:dashboard}
+\end{figure}
+
+% ==========================================
+% 8. USO DE IA
+% ==========================================
+\section{Uso de IA generativa e o registro de decisões}\label{sec:ia}
+
+Grande parte do código do projeto foi escrita com apoio de ferramentas de IA generativa. Declaramos isso abertamente porque a parte que consideramos trabalho de verdade --- e que este relatório tenta demonstrar --- é outra: entender os algoritmos, escolher e interpretar as métricas e \textbf{auditar} o que a IA produziu. Escrevemos os pedidos com base no que aprendemos em aula e julgamos as respostas com o mesmo critério.
+
+O episódio que motivou essa disciplina de auditoria vale ser contado, porque mudou o rumo do experimento. Na primeira versão dos dados sintéticos, o pipeline executava de ponta a ponta e as métricas ``convenciam'': o SVD vencia o KNN, como a teoria previa. Mas, ao revisar os números, algo não fechava: o SVD ``vencedor'' tinha RMSE 1,2345 --- \textbf{pior} que o chute da média global (1,2129). Um modelo que perde da média não aprendeu nada; ``vencer o KNN'' eram dois modelos ruins empatando. Investigando, encontramos os defeitos descritos neste relatório: 79,8\% das previsões do KNN eram \textit{fallback} da média global disfarçadas de resultado; as notas eram quase todas altas porque os usuários sintéticos só viam vagas de que gostavam; e a matriz, com 25.000 itens, era esparsa demais para qualquer sobreposição. A IA não apontou nada disso --- os números pareciam plausíveis, e plausibilidade não é evidência.
+
+Esse ciclo de revisão produziu o arquivo \texttt{DECISOES.md}, que registra cada decisão de design com o seu porquê, e virou a âncora do projeto. As principais decisões foram:
+
+\begin{itemize}
+    \item \textbf{Reduzir o catálogo de 25.000 para 6.000 vagas} (Seção~\ref{sec:sinteticos}), para criar a sobreposição de avaliações que o KNN exige;
+    \item \textbf{Separar exposição de opinião} (Seção~\ref{sec:sinteticos}), para que existisse sinal aprendível --- notas baixas de verdade, e não um mundo de notas 4 e 5;
+    \item \textbf{Adicionar baselines triviais}, para que ``bom'' significasse ``melhor que chutar a média'', e não apenas ``melhor que o outro modelo'';
+    \item \textbf{Contar as previsões impossíveis do KNN} em vez de deixá-las se misturar ao RMSE;
+    \item \textbf{Testar significância} antes de afirmar que um modelo venceu outro.
+\end{itemize}
+
+O padrão geral: a IA executava rápido, mas aceitava qualquer resultado que não quebrasse o código. Cabe ao desenvolvedor perguntar se o resultado faz sentido --- e as métricas certas, com baselines e testes estatísticos, são o que transforma essa pergunta em resposta verificável.
+
+% ==========================================
+% 9. LIMITAÇÕES
+% ==========================================
+\section{Limitações}\label{sec:limitacoes}
+
+\begin{enumerate}
+    \item \textbf{Avaliação auto-realizável por construção.} O \textit{ground truth} do gerador é $\text{aff}(u,j) = w_u \cdot b_j$, uma forma bilinear exatamente igual à que o SVD ajusta. Por isso o Precision@10 chega a 1,0: o modelo recupera a estrutura que definiu a verdade. O experimento valida a \textbf{metodologia} --- geração, treino, métricas, comparação --- e não a performance que o sistema teria sobre preferências reais, que não são bilineares nem estáticas.
+    \item \textbf{Dados sintéticos.} Os padrões de interação são plausíveis, mas não reproduzem a distribuição real de candidaturas --- a LGPD nos impede de coletá-la. A análise exploratória, feita sobre 123 mil vagas reais, funciona como âncora de realidade para as personas e a popularidade.
+    \item \textbf{A CBF não tem métrica quantitativa.} Só a filtragem colaborativa foi avaliada contra \textit{ground truth}. Avaliar a CBF com o mesmo protocolo (perfil TF-IDF construído a partir das notas 5 do usuário sintético, medindo Precision@\textit{K} e NDCG@\textit{K}) é viável e ficou como trabalho futuro; no comparativo do dashboard, a CBF aparece apenas qualitativamente.
+    \item \textbf{Seleção de hiperparâmetro no conjunto de teste.} O número de fatores latentes do SVD foi escolhido pelo menor RMSE de teste entre 20, 50 e 100. Com 120 mil pontos, o viés é desprezível diante das diferenças observadas, mas a prática correta exigiria um conjunto de validação separado.
+    \item \textbf{Escopo dos algoritmos.} Não implementamos tratamento de \textit{cold start}, não testamos KNN item-item e não fizemos busca completa de hiperparâmetros --- a disciplina trabalha o paradigma \textit{user-based}, e o objetivo era a comparação metodologicamente justa, não a otimização máxima.
+\end{enumerate}
+
+% ==========================================
+% 10. CONCLUSÃO
+% ==========================================
+\section{Conclusão}
+
+Partimos de um impasse: a próxima etapa do projeto exigia um histórico de interações que a base real não tem e que a legislação não permite coletar. A saída foi construir esse histórico --- 5.000 usuários sintéticos com preferências contínuas, 6.000 vagas reais, 602.216 interações geradas com exposição separada de opinião e afinidade verdadeira conhecida --- e usá-lo para executar, de ponta a ponta, o ciclo completo de um sistema colaborativo: modelagem, treino, avaliação honesta e aplicação.
+
+O resultado prático: o SVD com 20 fatores reduziu o RMSE em 60\% em relação ao chute da média global (0,625 contra 1,578) e superou o KNN no top-10 com significância estatística confirmada. O resultado metodológico vale mais: baselines obrigatórios, contagem das previsões ``impossíveis'', pool de ranking construído sem favorecimento e teste estatístico pareado são o que impede que um pipeline com IA generativa produza métricas bonitas e vazias --- o caso exato em que o projeto começou.
+
+Os próximos passos naturais são avaliar a CBF contra o mesmo \textit{ground truth} para um comparativo quantitativo das duas abordagens, implementar estratégias de \textit{cold start} e testar o KNN item-item, que se comporta melhor em catálogos com muitos itens avaliados por poucos usuários.
+
+% ==========================================
+% REFERÊNCIAS
+% ==========================================
+\begin{thebibliography}{9}
+
+\bibitem{aggarwal}
+AGGARWAL, C. C. \textbf{Recommender Systems: The Textbook}. New York: Springer, 2016.
+
+\bibitem{grouplens}
+RESNICK, P. et al. GroupLens: an open architecture for collaborative filtering of netnews. In: \textbf{Proceedings of CSCW '94}. ACM, 1994. p. 175--186.
+
+\bibitem{koren}
+KOREN, Y.; BELL, R.; VOLINSKY, C. Matrix factorization techniques for recommender systems. \textbf{Computer}, v. 42, n. 8, p. 30--37, 2009.
+
+\bibitem{ndcg}
+JÄRVELIN, K.; KEKÄLÄINEN, J. Cumulated gain-based evaluation of IR techniques. \textbf{ACM Transactions on Information Systems}, v. 20, n. 4, p. 422--446, 2002.
+
+\bibitem{wilcoxon}
+WILCOXON, F. Individual comparisons by ranking methods. \textbf{Biometrics Bulletin}, v. 1, n. 6, p. 80--83, 1945.
+
+\bibitem{surprise}
+HUG, N. Surprise: a Python library for recommender systems. \textbf{Journal of Open Source Software}, v. 5, n. 52, 2174, 2020.
+
+\bibitem{lgpd}
+BRASIL. \textbf{Lei nº 13.709, de 14 de agosto de 2018}. Lei Geral de Proteção de Dados Pessoais (LGPD). Diário Oficial da União, Brasília, 2018.
+
+\end{thebibliography}
+
+\end{document}
