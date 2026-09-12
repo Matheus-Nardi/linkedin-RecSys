@@ -23,6 +23,7 @@ if RAIZ_PROJETO not in sys.path:
     sys.path.insert(0, RAIZ_PROJETO)
 
 import altair as alt  # dependência transitiva do Streamlit (gráficos nativos)
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -49,6 +50,7 @@ COLUNAS_CARREGADAS = [
     "views",
     "normalized_salary",
     "med_salary",
+    "location",
 ]
 AMOSTRA_CBF = 25000
 
@@ -76,6 +78,134 @@ COR_LARANJA = "#DD8452"
 
 st.title(":material/recommend: Sistema de Recomendação de Vagas (CBF + CF)")
 st.write("Disciplina: Tópicos em Sistemas de Recomendação | Autor: Matheus N.")
+
+# --- COMPONENTE "CARD DE VAGA" (estilo LinkedIn) — feeds CBF e CF ---
+MAPA_NIVEL_PT = {
+    "Internship": "Estágio",
+    "Entry level": "Júnior",
+    "Associate": "Pleno",
+    "Mid-Senior level": "Sênior",
+    "Director": "Diretoria",
+    "Executive": "Executivo",
+}
+
+st.markdown(
+    """
+    <style>
+    .rc-avatar {width: 2.75rem; height: 2.75rem; border-radius: 50%;
+      background: #0A66C2; color: #fff; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 1.05rem;}
+    .rc-badge {display: inline-block; padding: 0.05rem 0.55rem; border-radius: 999px;
+      background: #EAF0F6; color: #444; font-size: 0.75rem; font-weight: 600;
+      margin-right: 0.35rem;}
+    .rc-badge--remoto {background: #E6F4EA; color: #1E7E34;}
+    .rc-score {text-align: right; font-size: 1.35rem; font-weight: 700; color: #0A66C2;}
+    .rc-score-help {text-align: right; font-size: 0.72rem; color: #666;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+def _fmt_salario(valor):
+    """Salário anual USD → 'US$ 107 mil/ano'; None/NaN/<=0 → None (badge omitido)."""
+    if valor is None or pd.isna(valor) or valor <= 0:
+        return None
+    if valor >= 1000:
+        return "US$ " + f"{valor / 1000:,.0f}".replace(",", ".") + " mil/ano"
+    return "US$ " + f"{valor:,.0f}".replace(",", ".") + "/ano"
+
+
+def _iniciais(empresa):
+    if not empresa or str(empresa).lower() in ("n/a", "nan", "none"):
+        return "?"
+    partes = str(empresa).split()
+    return (partes[0][0] + (partes[1][0] if len(partes) > 1 else "")).upper()
+
+
+def _info_da_vaga(job_id):
+    """(localização, salário anual) via lookup global; tolera job_id fora do índice."""
+    linha = _info_vagas_dict.get(job_id) or _info_vagas_dict.get(int(job_id)) or {}
+    local = linha.get("location")
+    if local is None or pd.isna(local) or not str(local).strip():
+        local = None
+    salario = linha.get("normalized_salary")
+    if salario is not None and pd.isna(salario):
+        salario = None
+    return local, salario
+
+
+def card_vaga(
+    titulo,
+    empresa,
+    nivel=None,
+    local=None,
+    remoto=False,
+    salario=None,
+    score_txt=None,
+    score_help=None,
+    explicacao=None,
+    botoes=None,
+    key="",
+):
+    """Card estilo LinkedIn. Retorna a lista de cliques (True/False) na ordem de botoes.
+
+    botoes: lista de dicts com label, help e tipo ('primary' | 'secondary').
+    """
+    clicados = []
+    with st.container(border=True):
+        c_av, c_main, c_score = st.columns([0.08, 0.70, 0.22], gap="small")
+        with c_av:
+            st.markdown(
+                "<div class='rc-avatar'>" + _iniciais(empresa) + "</div>",
+                unsafe_allow_html=True,
+            )
+        with c_main:
+            st.markdown("**" + str(titulo) + "**")
+            meta = " · ".join(
+                x
+                for x in [
+                    str(empresa) if empresa else None,
+                    MAPA_NIVEL_PT.get(nivel, nivel),
+                    local,
+                ]
+                if x
+            )
+            if meta:
+                st.caption(meta)
+            badges = []
+            if remoto:
+                badges.append("<span class='rc-badge rc-badge--remoto'>Remoto</span>")
+            sal_txt = _fmt_salario(salario)
+            if sal_txt:
+                badges.append("<span class='rc-badge'>" + sal_txt + "</span>")
+            if badges:
+                st.markdown("".join(badges), unsafe_allow_html=True)
+            if explicacao:
+                st.caption(":material/lightbulb: " + explicacao)
+        with c_score:
+            if score_txt:
+                _ajuda = (
+                    "<div class='rc-score-help'>" + score_help + "</div>"
+                    if score_help
+                    else ""
+                )
+                st.markdown(
+                    "<div class='rc-score'>" + score_txt + "</div>" + _ajuda,
+                    unsafe_allow_html=True,
+                )
+            for i, b in enumerate(botoes or []):
+                clicados.append(
+                    st.button(
+                        b["label"],
+                        key=str(key) + "_btn" + str(i),
+                        help=b.get("help"),
+                        type=b.get("tipo", "secondary"),
+                        use_container_width=True,
+                    )
+                )
+    return clicados
+
 
 if not os.path.exists(POSTINGS_FILE):
     st.error(
@@ -251,6 +381,9 @@ def carregar_dados():
     metricas = carregar_metricas()
     agreg = _agregar_eda(df_total, df_companies)
 
+    # Lookup único p/ os cards: localização e salário por job_id (serve CBF e CF).
+    info_vagas = df_total.set_index("job_id")[["location", "normalized_salary"]]
+
     return {
         "df_total": df_total,
         "total_vagas": total_vagas,
@@ -260,6 +393,7 @@ def carregar_dados():
         "rec_cf": rec_cf,
         "metricas": metricas,
         "agreg": agreg,
+        "info_vagas": info_vagas,
     }
 
 
@@ -274,6 +408,13 @@ recsys = _dados["recsys"]
 rec_cf = _dados["rec_cf"]
 metricas = _dados["metricas"]
 agreg = _dados["agreg"]
+info_vagas = _dados["info_vagas"]
+
+# job_id -> posição na matriz TF-IDF do CBF (explicações e feedback por card).
+_idx_por_job_cbf = {int(j): i for i, j in enumerate(recsys.df["job_id"])}
+
+# job_id -> {location, normalized_salary} para os cards da CF (catálogo ⊂ df_total).
+_info_vagas_dict = info_vagas.to_dict("index")
 
 
 # --- HELPERS DE FORMATAÇÃO E GRÁFICO ---
