@@ -1149,7 +1149,10 @@ def pagina_cbf():
                 _r = recsys.df.iloc[_pos]
                 _local_c, _sal_c = _info_da_vaga(_jid)
                 _sim = float(
-                    np.dot(user_profile, np.asarray(recsys.matrix[_pos].todense()).ravel())
+                    np.dot(
+                        np.asarray(user_profile).ravel(),
+                        np.asarray(recsys.matrix[_pos].todense()).ravel(),
+                    )
                 )
                 clicou_c = card_vaga(
                     titulo=_r["title"],
