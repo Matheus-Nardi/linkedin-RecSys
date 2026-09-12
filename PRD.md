@@ -29,12 +29,12 @@ A análise exploratória avalia 5 hipóteses estratégicas (3 confirmatórias e 
 1. **Hipótese 1 ($H_1$) -- Preferência por Trabalho Remoto (Confirmada):**
    * *Pergunta:* As pessoas se candidatam mais para vagas remotas do que para vagas presenciais?
    * *Hipótese:* Vagas na modalidade remota recebem, em média, significativamente mais candidaturas (`applies`) por vaga do que vagas presenciais/híbridas.
-   * *Achado:* Vagas remotas recebem mais que o dobro de candidatos (44,6 vs. 20,4).
+   * *Achado:* Vagas remotas recebem ~3× mais candidaturas (média 20,8 vs. 6,7; mediana 6,0 vs. 2,0).
 
 2. **Hipótese 2 ($H_2$) -- Relação entre Experiência e Salário (Confirmada):**
    * *Pergunta:* Quanto o salário médio aumenta conforme o nível de senioridade exigido?
    * *Hipótese:* Vagas de nível Sênior oferecem uma média salarial superior ao dobro de vagas de nível Júnior/Entrada.
-   * *Achado:* Salário médio de Sênior (\$118.900) supera com folga o dobro de Júnior (\$58.300).
+   * *Achado:* **Mediana** salarial de Sênior (\$107.500) supera o dobro de Júnior (\$52.213) — razão 2,06×. As médias brutas são contaminadas por outliers extremos (ex.: estágios com média \$963 mil), por isso a comparação de referência usa medianas.
 
 3. **Hipótese 3 ($H_3$) -- Salário: Remoto vs. Presencial (Refutada / Contra-Intuitiva):**
    * *Pergunta:* Vagas presenciais pagam mais para compensar custos de deslocamento e moradia?

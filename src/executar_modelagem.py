@@ -9,6 +9,7 @@ Todas as decisões metodológicas estão explicadas em DECISOES.md.
 
 import os
 import time
+from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -114,6 +115,24 @@ rmse_im = float(np.sqrt(np.mean((pred_im - r_true) ** 2)))
 mae_im = float(np.mean(np.abs(pred_im - r_true)))
 print(f"Média por Item       : RMSE={rmse_im:.4f} MAE={mae_im:.4f}")
 
+# Oráculo: conhece a afinidade exata de cada par e prevê a EXPECTATIVA do
+# rating (1 + 4·aff, contínua, sem arredondar). É o PISO TEÓRICO de RMSE —
+# nenhum modelo pode bater, pois o ruído do gerador (ε~N(0,0.55)) já está
+# embutido nos ratings observados.
+print("Calculando RMSE do oráculo (piso de ruído)...")
+_aff_cache = {}
+def _aff_row(u):
+    if u not in _aff_cache:
+        _aff_cache[u] = computar_afinidade_user(u)
+    return _aff_cache[u]
+pred_oraculo = np.array([
+    min(5.0, max(1.0, 1 + 4 * _aff_row(t[0])[posicao_por_job[t[1]]]))
+    for t in testset
+])
+rmse_oraculo = float(np.sqrt(np.mean((pred_oraculo - r_true) ** 2)))
+mae_oraculo = float(np.mean(np.abs(pred_oraculo - r_true)))
+print(f"Oráculo (afinidade exata) : RMSE={rmse_oraculo:.4f} MAE={mae_oraculo:.4f}")
+
 # ============================================================================
 # 3. MODELOS NO SPLIT ÚNICO 80/20 (baselines + KNN + SVD)
 # ============================================================================
@@ -169,6 +188,7 @@ rmse_svd = cv_svd[best_factors]['rmse']
 mae_svd = cv_svd[best_factors]['mae']
 
 # ---- Teste estatístico pareado (SVD vs KNN) ----
+p_wilcoxon = None
 if n_impossiveis < N_TEST:
     mask = ~impossivel
     stat, p_wilcoxon = wilcoxon((est_svd[mask]-r_true[mask])**2,
@@ -179,9 +199,10 @@ if n_impossiveis < N_TEST:
 # ---- Tabela comparativa (erro) ----
 df_erro = pd.DataFrame({
     'Modelo': ['Média Global', 'Média por Usuário', 'Média por Item',
-               f'KNN (Cosseno)', f'SVD ({best_factors} fatores)'],
-    'RMSE': [rmse_gm, rmse_um, rmse_im, rmse_knn, rmse_svd],
-    'MAE': [mae_gm, mae_um, mae_im, mae_knn, mae_svd],
+               'Oráculo (piso de ruído)', f'KNN (Cosseno)',
+               f'SVD ({best_factors} fatores)'],
+    'RMSE': [rmse_gm, rmse_um, rmse_im, rmse_oraculo, rmse_knn, rmse_svd],
+    'MAE': [mae_gm, mae_um, mae_im, mae_oraculo, mae_knn, mae_svd],
 })
 print("\nTABELA COMPARATIVA DE ERRO:")
 print(df_erro.to_string(index=False))
@@ -274,6 +295,30 @@ for u in users_amostra:
 print(f"Tamanho médio do pool: {np.mean([len(p) for p in pools.values()]):.0f}")
 print(f"Relevantes médios no pool: "
       f"{np.mean([rel.mean()*100 for rel in relevantes.values()]):.1f}%")
+
+# ---------------------------------------------------------------
+# Exportar protocolo de avaliação (usuários, pools, relevância e
+# histórico de treino) para reuso por outras avaliações (ex.: CBF),
+# garantindo comparação exatamente maçãs-com-maçãs.
+# ---------------------------------------------------------------
+users_set = set(users_amostra)
+treino_por_user = {}
+for uid, iid, r in trainset.all_ratings():
+    raw_u = trainset.to_raw_uid(uid)
+    if raw_u in users_set:
+        treino_por_user.setdefault(raw_u, []).append(
+            (trainset.to_raw_iid(iid), float(r)))
+joblib.dump({
+    'users_amostra': users_amostra,
+    'pools': pools,
+    'relevantes': relevantes,
+    'grades': grades,
+    'treino_por_user': treino_por_user,
+    'job_ids_catalogo': job_ids_catalogo,
+    'k_ranking': K_RANKING,
+    'threshold_rel': THRESHOLD_REL,
+}, "data/processed/protocolo_ranking.pkl")
+print("  protocolo_ranking.pkl exportado em data/processed/!")
 
 # ---------------------------------------------------------------
 # KNN rápido via matriz esparsa (apenas para os usuários amostrados)
@@ -504,6 +549,17 @@ metadados = {
     'ndcg_at_10_svd': float(ndcg10),
     'precision_at_10_knn': float(p10_knn),
     'ndcg_at_10_knn': float(ndcg10_knn),
+    'precision_at_10_aleatorio': float(resultados_ranking['Aleatório'][10][0]),
+    'ndcg_at_10_aleatorio': float(resultados_ranking['Aleatório'][10][1]),
+    'precision_at_10_popularidade': float(
+        resultados_ranking['Popularidade'][10][0]),
+    'ndcg_at_10_popularidade': float(
+        resultados_ranking['Popularidade'][10][1]),
+    'rmse_oraculo': float(rmse_oraculo),
+    'mae_oraculo': float(mae_oraculo),
+    'p_wilcoxon_svd_vs_knn': (float(p_wilcoxon)
+                               if p_wilcoxon is not None else None),
+    'gerado_em': datetime.now(timezone.utc).isoformat(timespec="seconds"),
     'n_users': int(df_interacoes['user_id'].nunique()),
     'n_jobs': int(df_interacoes['job_id'].nunique()),
     'n_ratings': int(len(df_interacoes)),
@@ -545,6 +601,9 @@ checar("KNN Precision@10 > Aleatório",
        p10_knn > resultados_ranking['Aleatório'][10][0])
 checar("SVD Precision@10 > Popularidade",
        p10 > resultados_ranking['Popularidade'][10][0])
+checar("SVD RMSE >= piso do oráculo (consistência)",
+       rmse_svd >= rmse_oraculo,
+       f"(SVD={rmse_svd:.4f} vs oráculo={rmse_oraculo:.4f})")
 checar("SVD NDCG@10 > 0.70", ndcg10 > 0.70, f"(atual: {ndcg10:.4f})")
 checar("KNN NDCG@10 > 0.70", ndcg10_knn > 0.70, f"(atual: {ndcg10_knn:.4f})")
 if n_impossiveis < N_TEST:

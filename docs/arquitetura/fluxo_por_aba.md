@@ -32,7 +32,7 @@ Cada aba documentada na Arquitetura Alvo deve seguir rigorosamente estes **5 com
 
 ## 📌 Etapa 3: Mapeamento dos Fluxos Atuais (Fases 1 e 2)
 
-Abaixo está a especificação técnica das 4 abas atualmente implementadas no arquivo `app/dashboard.py`:
+Abaixo está a especificação técnica dos fluxos implementados em `app/dashboard.py`. Desde o **Sprint 0** eles se organizam em **dois modos de visita** na navegação (`st.navigation`): 🏠 **Comece aqui** (apresentação para leigos), 🧑‍💼 **Modo Candidato** = fluxos 1–3 abaixo (EDA → CBF → CF), e 🔬 **Modo Avaliador** = fluxo 4 (Comparativo, agora com CBF métrica + oráculo + Wilcoxon + proveniência) mais o novo fluxo 5 **Como avaliamos & limitações** (declaração de método: dados sintéticos/LGPD, avaliação self-fulfilling, piso de ruído, nota metodológica do baseline de popularidade). Os fluxos documentados a seguir permanecem válidos — o que mudou foi o agrupamento e a camada de honestidade na tela.
 
 ---
 
@@ -69,6 +69,7 @@ Abaixo está a especificação técnica das 4 abas atualmente implementadas no a
   4. Cálculo de Similaridade do Cosseno entre o vetor do perfil e a matriz de vagas.
   5. Desempate via bônus empírico de atratividade (CTR).
 * **Fallback (Cold Start):** Resolvido por construção — basta o usuário digitar uma única palavra-chave.
+* **Sprint 1 (experiência):** resultados renderizados pelo componente `card_vaga` (título, empresa, nível, local, badges de remoto/salário via `info_vagas`); explicação por card com `_termos_que_casam` (top-k do produto elemento a elemento perfil×item, que soma a similaridade); sliders **α/β/γ** expostos; botões 👍 "Curtir" (entram no vetor positivo E saem do feed, como num produto real — o valor delas é estarem no perfil) e ✖ "Não mostrar" persistem em session_state e re-ranqueiam via _rerun_feed() (rerun escopado no fragmento com fallback para rerun de app inteiro — scope="fragment" fora de rerun de fragmento lança exceção) — nada toca os modelos treinados. Rótulos e semântica idênticos aos da CF (Decisão D7). Nota: o mapa nome→índice agora aponta para a primeira posição real do `recsys.df` (o `.unique()` antigo divergia da matriz em títulos repetidos).
 * **Diagrama de Fluxo:**
   ```mermaid
   flowchart TD
@@ -78,7 +79,9 @@ Abaixo está a especificação técnica das 4 abas atualmente implementadas no a
       CTR["Bônus Empírico de CTR\n(Atratividade de Mercado)"] --> R["Score Final = Cosseno + α · CTR"]
       C --> R
       R --> T["Filtro Remoto / Slider Top-N"]
-      T --> O["Top-N Vagas Recomendadas na UI"]
+      T --> O["Feed de cards \n(=match, termos que casam, 👍/✖)"]
+      O -->|"feedback 👍/✖"| FS["session_state: curtidas/descartadas"]
+      FS -->|"re-rankeia no fragment"| V
   ```
 
 ---
@@ -103,9 +106,11 @@ Abaixo está a especificação técnica das 4 abas atualmente implementadas no a
       M["Modelo Treinado\n(modelo_svd.pkl)"] --> S["Predição SVD:\nŷ = μ + b_u + b_i + q_iᵀ p_u"]
       P --> S
       C["Catálogo Cacheado\n(catalogo_cf.csv - 6.000 vagas)"] --> S
-      S --> E["Explicabilidade da Nota\n(Decomposição dos Vieses)"]
-      S --> F["Top-N Vagas Recomendadas\n(Exclui vagas já avaliadas)"]
+      S --> E["Waterfall Altair +\nexplicação dominante (1 linha)"]
+      S --> F["Feed de cards\n(Top-N, exclui avaliadas)"]
+      F --> FB["👍 Curtir / ✖ Não mostrar\n(session_state, simulação didática)"]
   ```
+* **Sprint 1 (experiência):** resultados viraram `card_vaga` com nota prevista em destaque; a explicação usa o **componente dominante** de `explicar_recomendacao` (match latente / b_i / b_u, com sinal); o expander numérico foi substituído pelo **waterfall** μ→+b_u→+b_i→+match→=ŷ (tabela completa continua num expander); Curtir/Não mostrar são **simulação didática rotulada** — não alteram o SVD. **D7:** o ranking ordena pelo escore BRUTO (μ+b_u+b_i+match sem clip) porque a afinidade sintética satura e o topo empataria em notas 5,0 clipadas (ordem de catálogo disfarçada); a nota 1–5 truncada continua sendo a cifra exibida, com o bruto no tooltip. No topo saturado o componente dominante costuma ser b_i (vaga boa para todos), não o match — o outro viés possível é b_u (perfil que avalia tudo acima/abaixo da média).
 
 ---
 
@@ -114,14 +119,29 @@ Abaixo está a especificação técnica das 4 abas atualmente implementadas no a
 * **Objetivo:** Confrontar as características teóricas e as métricas auditadas de ambas as abordagens.
 * **User Story:**
   > *"Como avaliador técnico do projeto, quero confrontar as características e as métricas auditadas de CBF e CF lado a lado, para entender os prós, contras e viabilidade de cada abordagem."*
-* **Artefatos e Dados:** `metricas_avaliacao.pkl`.
-* **Processamento:** Leitura direta das métricas consolidadas (RMSE, Precision@10, NDCG@10, teste de Wilcoxon) para SVD, KNN e baselines triviais.
+* **Artefatos e Dados:** `data/processed/metadados_cf.pkl` (SVD/KNN/baselines/oráculo/Wilcoxon, gerado por `executar_modelagem.py`) e `metadados_cbf.pkl` (CBF no mesmo protocolo, gerado por `avaliar_cbf.py`), mesclados em `carregar_metricas()`.
+* **Processamento:** Tabela completa com 8 linhas — chutes triviais (média global, média por item, aleatório, popularidade), **oráculo (piso de ruído)**, **CBF métrica** (P@K/NDCG@10, sem bônus de CTR), KNN e SVD — mais caption com p-valor de Wilcoxon, nota metodológica do baseline de popularidade (pool de 2.000, médias do TRAIN) e proveniência (data de geração dos .pkl).
+* **Comportamento sob limitações:** se `metadados_cbf.pkl` não existir, as linhas CBF exibem "—" (fallback `.get()`), sem quebrar a página.
 * **Diagrama de Fluxo:**
   ```mermaid
   flowchart LR
-      A["metricas_avaliacao.pkl\n(RMSE, P@10, NDCG@10, Wilcoxon)"] --> D["Renderização das Métricas no Dashboard"]
+      M["executar_modelagem.py"] --> P1["metadados_cf.pkl"]
+      C["avaliar_cbf.py"] -->|"usa protocolo_ranking.pkl"| P2["metadados_cbf.pkl"]
+      P1 --> D["carregar_metricas() → Duelo dos modelos"]
+      P2 --> D
       B["Tabela Conceitual\n(Sinal, Cold Start, Serendipidade)"] --> D
   ```
+
+---
+
+### 🧪 5. Fluxo novo (Sprint 0): Como avaliamos & limitações (Modo Avaliador)
+
+* **Objetivo:** colocar método e fragilidades na tela, onde a banca vê — em vez de escondê-las em .md.
+* **User Story:**
+  > *"Como avaliador, quero saber como cada número foi medido e quais limitações o time declara, para julgar a engenharia sem precisar caçar informação."*
+* **Artefatos e Dados:** mtime dos artefatos em `data/processed/` + chaves de `metadados_cf.pkl`/`metadados_cbf.pkl` (rmse_oraculo, p_wilcoxon, precision/ndcg por modelo).
+* **Conteúdo:** proveniência (tabela artefato→script→data), justificativa LGPD dos dados sintéticos, declaração de avaliação *self-fulfilling* (ground truth bilinear), piso de ruído (oráculo 0,521 vs SVD 0,625 = 1,20×), baselines/Wilcoxon e limitações abertas (skills_desc ~98% null, KNN fallback, cold start → Fase 3).
+* **Fallback:** cada seção é guardada pela presença da chave no metadados — páginas antigas sem as chaves novas simplesmente omitem o bloco.
 
 ---
 

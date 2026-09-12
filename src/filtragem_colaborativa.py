@@ -122,11 +122,16 @@ class RecSysCF:
     # ------------------------------------------------------------------
     # Previsão: score de todos os itens para o usuário
     # ------------------------------------------------------------------
-    def prever_scores(self, user_id):
+    def prever_scores(self, user_id, clip=True):
         """
         Predição SVD vetorizada para todo o catálogo:
             ŷ(u, i) = μ + b_u + b_i + q_iᵀ p_u
         Itens ausentes no treino recebem a média global (fallback).
+
+        clip=False devolve o escore BRUTO (sem truncar em 1–5). O bruto é o que
+        ordena o ranking: várias vagas no topo tem afinidade saturada e empatam
+        em 5,0 depois do clip — ordenar pelo clipado deixa o "Top-N" numa ordem
+        arbitrária (herdada do catálogo).
         """
         inner_u = self.modelo.trainset.to_inner_uid(int(user_id))
         p_u = self.modelo.pu[inner_u]
@@ -140,7 +145,7 @@ class RecSysCF:
                     self.qi[inner] @ p_u
                 )
         # Mesma truncatura na escala 1-5 que o Surprise aplica em predict()
-        return np.clip(scores, 1.0, 5.0)
+        return np.clip(scores, 1.0, 5.0) if clip else scores
 
     def recomendar(
         self,
@@ -151,10 +156,16 @@ class RecSysCF:
         filtro_persona=None,
         min_nota_historico=None,
     ):
-        """Ranking Top-N para o usuário a partir das predições do SVD."""
-        scores = self.prever_scores(user_id)
+        """Ranking Top-N para o usuário a partir das predições do SVD.
+
+        Ordena pelo escore BRUTO (mu+b_u+b_i+match) e mostra a nota truncada
+        em 1–5; assim o topo com várias vagas saturadas em 5,0 deixa de
+        empatar numa ordem arbitrária de catálogo.
+        """
+        brutos = self.prever_scores(user_id, clip=False)
         df = self.df.copy()
-        df["score_previsto"] = scores
+        df["score_bruto"] = brutos
+        df["score_previsto"] = np.clip(brutos, 1.0, 5.0)
 
         if apenas_nao_avaliadas:
             avaliadas, _ = self.obter_historico(user_id)
@@ -173,10 +184,10 @@ class RecSysCF:
 
         colunas = [
             "job_id", "title", "company_name", "formatted_experience_level",
-            "is_remote", "fit_persona", "score_previsto",
+            "is_remote", "fit_persona", "score_previsto", "score_bruto",
         ]
         return (
-            df.sort_values("score_previsto", ascending=False)
+            df.sort_values("score_bruto", ascending=False)
             .head(top_n)[colunas]
             .reset_index(drop=True)
         )
@@ -259,8 +270,20 @@ def _carregar_catalogo(verdade, df_interacoes, data_dir):
 
 
 def carregar_metricas(data_dir="data/processed"):
-    """Métricas da avaliação (executar_modelagem.py) para exibição."""
-    return joblib.load(os.path.join(data_dir, "metadados_cf.pkl"))
+    """Métricas da avaliação (executar_modelagem.py) para exibição.
+
+    Mescla, se existir, a avaliação da CBF (avaliar_cbf.py) no mesmo dicionário.
+    O timestamp da CBF é renomeado para 'gerado_em_cbf' para não sobrescrever o
+    do CF.
+    """
+    metricas = joblib.load(os.path.join(data_dir, "metadados_cf.pkl"))
+    caminho_cbf = os.path.join(data_dir, "metadados_cbf.pkl")
+    if os.path.exists(caminho_cbf):
+        cbf = joblib.load(caminho_cbf)
+        if "gerado_em" in cbf:
+            cbf["gerado_em_cbf"] = cbf.pop("gerado_em")
+        metricas.update(cbf)
+    return metricas
 
 
 if __name__ == "__main__":

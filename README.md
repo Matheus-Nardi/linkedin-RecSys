@@ -13,8 +13,8 @@ Investigação sobre a base **LinkedIn Job Postings (2023 - 2024)** (mais de 123
 
 | Hipótese | Senso Comum / Expectativa Inicial | Realidade Observada nos Dados | Veredito |
 | :--- | :--- | :--- | :---: |
-| **$H_1$: Candidaturas por Modalidade** | Vagas remotas recebem mais candidaturas. | Vagas remotas atraem mais que o dobro de candidatos (média de 44,6 vs. 20,4). | **Confirmada** ✅ |
-| **$H_2$: Experiência vs. Salário** | Níveis mais altos de senioridade pagam salários maiores. | A média salarial de nível Sênior (\$118.900) supera o dobro de Júnior (\$58.300). | **Confirmada** ✅ |
+| **$H_1$: Candidaturas por Modalidade** | Vagas remotas recebem mais candidaturas. | Vagas remotas atraem ~3× mais candidatos (média de 20,8 vs. 6,7; mediana 6,0 vs. 2,0). | **Confirmada** ✅ |
+| **$H_2$: Experiência vs. Salário** | Níveis mais altos de senioridade pagam salários maiores. | A mediana salarial de nível Sênior (\$107.500) supera o dobro de Júnior (\$52.213) — razão 2,06×. | **Confirmada** ✅ |
 | **$H_3$: Salário Remoto vs. Presencial** | *"Vagas presenciais pagam mais para compensar custos de deslocamento."* | **Vagas remotas pagam 45% a mais em mediana** (\$112.500 vs. \$77.500), competindo por talentos globais. | **Refutada** ❌ |
 | **$H_4$: Porte da Empresa vs. Salário** | *"Grandes corporações (mais de 5.000 funcionários) pagam os maiores salários médios."* | **Empresas de médio porte e startups pagam mais** (\$90.000 vs. \$73.840 nas gigantes), devido ao perfil mais técnico. | **Refutada** ❌ |
 | **$H_5$: Transparência Salarial** | Salários são divulgados aleatoriamente. | Vagas remotas (31,9%) e posições plenas (39,6%) lideram a abertura de salários; vagas de entrada são mais opacas (24,8%). Fenômeno MNAR. | **Confirmada** ✅ |
@@ -42,7 +42,7 @@ Investigação sobre a base **LinkedIn Job Postings (2023 - 2024)** (mais de 123
 ---
 
 ### 4. Dashboard Integrado
-O Streamlit reúne as três frentes em páginas navegáveis pela **sidebar**: **Dataset & Hipóteses (EDA)** — radiografia do dataset (X vagas no bruto vs. Y carregadas para processamento, cobertura de salário/remoto/candidaturas) com os gráficos das hipóteses H1–H5 desenhados nativamente no dashboard e veredito visual —, **Simulador CBF** (perfil por curtidas + skills), **Filtragem Colaborativa** (perfil aprendido do usuário sintético, histórico, previsões SVD com explicabilidade μ + b_u + b_i + q_iᵀp_u) e **Comparativo CBF × CF** com as métricas da avaliação.
+O Streamlit reúne as frentes em **dois modos de visita** na sidebar. 🧑‍💼 **Modo Candidato** (para o leigo entender e experimentar): **O mercado de vagas (EDA)** — radiografia do dataset com as hipóteses H1–H5 desenhadas nativamente e veredito visual —, **Monte seu perfil (CBF)** (perfil por curtidas + skills) e **O sistema aprende (CF)** (perfil aprendido do usuário sintético, histórico, previsões SVD com explicabilidade μ + b_u + b_i + q_iᵀp_u). 🔬 **Modo Avaliador** (para a banca julgar): **Duelo dos modelos** — CBF × SVD × KNN × baselines × oráculo (piso de ruído) com métricas, Wilcoxon e nota metodológica — e **Como avaliamos & limitações** (proveniência, LGPD, avaliação self-fulfilling declarada). Uma página **🏠 Comece aqui** apresenta o sistema em 2 minutos. No Modo Candidato os resultados aparecem em **cards estilo feed** (localização, badges de remoto/salário, explicação de 1 linha) — na CBF, curtir/descartar **re-ranqueia o feed na hora**; na CF, um **waterfall** decompõe cada nota (μ + b_u + b_i + match). Tema LinkedIn em `.streamlit/config.toml`.
 
 ---
 
@@ -62,6 +62,7 @@ O Streamlit reúne as três frentes em páginas navegáveis pela **sidebar**: **
 │   ├── filtragem_colaborativa.py   # Motor CF (SVD) do dashboard: perfil, previsões e explicabilidade
 │   ├── executar_simulacao.py       # Gerador de dados sintéticos da Filtragem Colaborativa (v3)
 │   ├── executar_modelagem.py       # Treino/avaliação KNN vs SVD (RMSE/MAE + Precision@K/NDCG@K)
+│   ├── avaliar_cbf.py              # Avaliação da CBF no MESMO protocolo da CF (P@K/NDCG@K)
 │   ├── modelo_recomendacao.py      # Protótipo com TF-IDF + K-Means (clusterização de vagas)
 │   └── gerar_figuras_eda.py        # Script de geração dos gráficos de alta resolução da EDA
 │
@@ -73,7 +74,7 @@ O Streamlit reúne as três frentes em páginas navegáveis pela **sidebar**: **
 │   └── cf_modelagem.ipynb      # Modelagem e avaliação da CF
 │
 ├── app/                    # Aplicação interativa
-│   └── dashboard.py            # Streamlit (sidebar): Dataset & Hipóteses + CBF + CF + Comparativo
+│   └── dashboard.py            # Streamlit: 2 modos (Candidato × Avaliador) + Comece aqui + Limitações
 │
 ├── data/                   # Dados
 │   ├── raw/                    # Dados brutos (postings.csv, companies/, jobs/, mappings/)
