@@ -116,6 +116,20 @@ def _fmt_salario(valor):
     return "US$ " + f"{valor:,.0f}".replace(",", ".") + "/ano"
 
 
+def _rerun_feed():
+    """Re-renderiza o feed apos feedback.
+
+    scope="fragment" so e valido quando o fragmento roda num rerun scoped do
+    fragmento; em execucoes de app inteiro (AppTest, navegacao, clicks fora)
+    ele langa StreamlitAPIException — dai o fallback para rerun de app inteiro.
+    (RerunException herda de BaseException, entao NAO e engolido aqui.)
+    """
+    try:
+        st.rerun(scope="fragment")
+    except Exception:
+        st.rerun()
+
+
 def _iniciais(empresa):
     if not empresa or str(empresa).lower() in ("n/a", "nan", "none"):
         return "?"
@@ -1033,7 +1047,7 @@ def pagina_cbf():
                     }
                     st.session_state["cbf_curtidas"] = set()
                     st.session_state["cbf_descartadas"] = set()
-                    st.rerun(scope="fragment")
+                    _rerun_feed()
 
         seed = st.session_state["cbf_seed"]
         if seed is None:
@@ -1112,10 +1126,17 @@ def pagina_cbf():
                 key="cbfcard_" + str(_job_id),
             )
             if clicou[0]:
+                _ja = _job_id in st.session_state["cbf_curtidas"]
                 st.session_state["cbf_curtidas"].add(_job_id)
+                st.toast(
+                    "Esta vaga já estava no seu perfil" if _ja
+                    else "Vaga adicionada ao seu perfil — feed re-ranqueado",
+                    icon="👍",
+                )
                 houve_feedback = True
             if clicou[1]:
                 st.session_state["cbf_descartadas"].add(_job_id)
+                st.toast("Vaga removida do feed", icon="🚫")
                 houve_feedback = True
 
         col_x1, col_x2 = st.columns(2)
@@ -1132,7 +1153,7 @@ def pagina_cbf():
                 st.session_state.pop(_k, None)
             houve_feedback = True
         if houve_feedback:
-            st.rerun(scope="fragment")
+            _rerun_feed()
 
     _bloco_cbf()
 
@@ -1293,10 +1314,12 @@ def pagina_cf():
         )
         if clicou[0] and _job_id not in salvas:
             salvas.add(_job_id)
+            st.toast("Vaga salva na sua lista", icon="🔖")
             houve_feedback = True
         if clicou[1]:
             descartadas.add(_job_id)
             salvas.discard(_job_id)
+            st.toast("Vaga removida do feed", icon="🚫")
             houve_feedback = True
 
     col_b1, col_b2 = st.columns(2)
