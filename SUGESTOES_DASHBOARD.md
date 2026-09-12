@@ -12,8 +12,19 @@
 > no mesmo protocolo da CF; oráculo **0,5214** calculado no pipeline; Wilcoxon no
 > metadados). F4 em versão leve: dashboard reorganizado em 🏠 Comece aqui +
 > 🧑‍💼 Modo Candidato + 🔬 Modo Avaliador com a página "Como avaliamos & limitações".
-> Sprint 1 (cards LinkedIn, waterfall, feedback, grafo de skills, Cold Start Lab)
-> continua pendente — ver §4 e §6.
+>
+> **✅ SPRINT 1 EXECUTADO (12/09/2026, branch `sprint1-modo-candidato`):** F4
+> resolvida em cheio — Modo Candidato virou feed: componente `card_vaga`
+> (localização + badges remoto/salário), explicação de 1 linha por card (CBF:
+> termos que casam; CF: componente dominante da predição), feedback 👍/✖ que
+> **re-ranqueia na hora** (`@st.fragment`; CF rotulada simulação didática),
+> waterfall do score SVD, sliders α/β/γ, tema LinkedIn (`.streamlit/config.toml`)
+> e H1–H5 em abas. Corrigido bônus: mapa nome→índice do multiselect divergia da
+> matriz em títulos repetidos (Decisão D5). Restam do brainstorm: f4 vizinhos KNN,
+> f5 grafo de skills, f7 counterfactual, f8 Cold Start Lab, f9 viés — Sprint 2.
+>
+> **⏳ Pendente para a entrega final (25/09):** relatório mega-documento
+> orientado a user stories.**, ver `instrucoes.md`.
 
 ---
 

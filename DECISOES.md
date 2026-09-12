@@ -246,6 +246,27 @@ Resultado da execução final (dados v3, 602.216 interações, split 80/20):
 | **Por quê** | O .pkl do gerador guarda apenas os job_ids; reprocessar 123 mil linhas do postings.csv a cada boot do Streamlit desperdiçaria ~20 s de carga |
 | **Consequência** | Boot do dashboard mais rápido; cache invalidado automaticamente se o catálogo mudar de tamanho |
 
+---
+
+## 🎨 Parte E — Sprint 1: experiência do Modo Candidato (estilo LinkedIn)
+
+### Decisão D5: Feed em cards com explicação e feedback vivo (CBF e CF)
+
+| | |
+|---|---|
+| **O que era** | Resultados das duas técnicas como `st.dataframe`: o "usuário final" via uma tabela de scores sem entender nada, e nenhum botão mudava alguma coisa |
+| **O que é agora** | Componente compartilhado `card_vaga` (avatar com iniciais, empresa · nível · localização, badges Remoto/salário, score em destaque, 1 linha de explicação). Na **CBF**: "Casa com seu perfil por: python, sql…" (top-k termos do produto elemento-a-elemento perfil × linha TF-IDF, que soma exatamente a similaridade) e botões 👍/✖ que entram no perfil e **re-ranqueiam na hora** num `@st.fragment` (rerun só do feed, `st.rerun(scope="fragment")`). Na **CF**: explicação pelo **componente dominante** da predição (match latente / viés da vaga / viés do usuário) + **waterfall** Altair μ → +b_u → +b_i → +match → =ŷ; Salvar/Descartar rotulado **simulação didática** — nada altera o SVD treinado |
+| **Por quê** | Fecha F4 do diagnóstico (SUGESTOES_DASHBOARD.md): scrutability (Tintarev & Bendersky 2007) exige que o usuário discorde e **veja o efeito**; a explicação de 1 linha segue TRIVEA (interpretação de ranking em texto simples). Tabelas continuam no Modo Avaliador, onde são superiores |
+| **Consequência** | O Modo Candidato passa a agir como produto de verdade. **Bônus:** corrigido desvio latente do multiselect antigo — o mapa nome→índice usava posições da lista `.unique()`, que divergem das linhas da matriz quando "Título \| Empresa (Nível)" se repete; agora cada nome aponta para a primeira posição real do `recsys.df` |
+
+### Decisão D6: Tema e dados dos cards via config única
+
+| | |
+|---|---|
+| **O que é** | `.streamlit/config.toml` com paleta LinkedIn (primária #0A66C2, fundo #FFFFFF, secundária #F3F6F8) — vale para rodar local e no Docker (Makefile monta o repo). Coluna `location` adicionada ao carregamento; lookup único `info_vagas` (job_id → location + normalized_salary) enriquece os cards das duas técnicas |
+| **Por quê** | Cores espalhadas em constantes faziam cada tela parecer de outro projeto; e card de vaga sem localização não lembra o produto simulado |
+| **Consequência** | Identidade visual consistente; badge de salário aparece **só quando existe** (~50% das vagas — a opacidade salarial do H5 em tempo real). **Rejeitados com motivo:** logos reais das empresas (sem assets/licença) e "publicado há X dias" (dataset 2023–24 exibiria um estalecimento que pareceria bug) |
+
 ## ❌ O que NÃO foi feito (e por quê)
 
 | Decisão | Por quê |

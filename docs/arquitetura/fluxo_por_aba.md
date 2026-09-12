@@ -69,6 +69,7 @@ Abaixo está a especificação técnica dos fluxos implementados em `app/dashboa
   4. Cálculo de Similaridade do Cosseno entre o vetor do perfil e a matriz de vagas.
   5. Desempate via bônus empírico de atratividade (CTR).
 * **Fallback (Cold Start):** Resolvido por construção — basta o usuário digitar uma única palavra-chave.
+* **Sprint 1 (experiência):** resultados renderizados pelo componente `card_vaga` (título, empresa, nível, local, badges de remoto/salário via `info_vagas`); explicação por card com `_termos_que_casam` (top-k do produto elemento a elemento perfil×item, que soma a similaridade); sliders **α/β/γ** expostos; botões 👍 "Mais assim" (entram no vetor positivo) e ✖ "Não mostrar" (filtros do feed) persistem em `session_state` e re-ranqueiam dentro de `@st.fragment` com `st.rerun(scope="fragment")` — nada toca os modelos treinados. Nota: o mapa nome→índice agora aponta para a primeira posição real do `recsys.df` (o `.unique()` antigo divergia da matriz em títulos repetidos).
 * **Diagrama de Fluxo:**
   ```mermaid
   flowchart TD
@@ -78,7 +79,9 @@ Abaixo está a especificação técnica dos fluxos implementados em `app/dashboa
       CTR["Bônus Empírico de CTR\n(Atratividade de Mercado)"] --> R["Score Final = Cosseno + α · CTR"]
       C --> R
       R --> T["Filtro Remoto / Slider Top-N"]
-      T --> O["Top-N Vagas Recomendadas na UI"]
+      T --> O["Feed de cards \n(=match, termos que casam, 👍/✖)"]
+      O -->|"feedback 👍/✖"| FS["session_state: curtidas/descartadas"]
+      FS -->|"re-rankeia no fragment"| V
   ```
 
 ---
@@ -103,9 +106,11 @@ Abaixo está a especificação técnica dos fluxos implementados em `app/dashboa
       M["Modelo Treinado\n(modelo_svd.pkl)"] --> S["Predição SVD:\nŷ = μ + b_u + b_i + q_iᵀ p_u"]
       P --> S
       C["Catálogo Cacheado\n(catalogo_cf.csv - 6.000 vagas)"] --> S
-      S --> E["Explicabilidade da Nota\n(Decomposição dos Vieses)"]
-      S --> F["Top-N Vagas Recomendadas\n(Exclui vagas já avaliadas)"]
+      S --> E["Waterfall Altair +\nexplicação dominante (1 linha)"]
+      S --> F["Feed de cards\n(Top-N, exclui avaliadas)"]
+      F --> FB["✅ Salvar / ✖ Descartar\n(session_state, simulação didática)"]
   ```
+* **Sprint 1 (experiência):** resultados viraram `card_vaga` com nota prevista em destaque; a explicação usa o **componente dominante** de `explicar_recomendacao` (match latente / b_i / b_u, com sinal); o expander numérico foi substituído pelo **waterfall** μ→+b_u→+b_i→+match→=ŷ (tabela completa continua num expander); Salvar/Descartar são **simulação didática rotulada** — não alteram o SVD.
 
 ---
 
