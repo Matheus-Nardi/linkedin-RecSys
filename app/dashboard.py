@@ -123,6 +123,14 @@ def _iniciais(empresa):
     return (partes[0][0] + (partes[1][0] if len(partes) > 1 else "")).upper()
 
 
+def _txt(valor):
+    """Qualquer valor de metadado → str limpa; None/NaN/'nan'/vazio → None."""
+    if valor is None or (isinstance(valor, float) and pd.isna(valor)):
+        return None
+    s = str(valor).strip()
+    return s if s and s.lower() not in ("nan", "none") else None
+
+
 def _info_da_vaga(job_id):
     """(localização, salário anual) via lookup global; tolera job_id fora do índice."""
     linha = _info_vagas_dict.get(job_id) or _info_vagas_dict.get(int(job_id)) or {}
@@ -165,9 +173,9 @@ def card_vaga(
             meta = " · ".join(
                 x
                 for x in [
-                    str(empresa) if empresa else None,
-                    MAPA_NIVEL_PT.get(nivel, nivel),
-                    local,
+                    _txt(empresa),
+                    _txt(MAPA_NIVEL_PT.get(nivel, nivel)),
+                    _txt(local),
                 ]
                 if x
             )
@@ -578,6 +586,12 @@ def pagina_comece_aqui():
         icon=":material/verified:",
     )
 
+    st.subheader(":material/route: Por onde começar")
+    col_p1, col_p2, col_p3 = st.columns(3)
+    col_p1.page_link("/perfil", label="Montar meu perfil", icon=":material/tune:")
+    col_p2.page_link("/sistema", label="Ver o sistema aprendendo", icon=":material/group:")
+    col_p3.page_link("/duelo", label="Julgar as métricas", icon=":material/balance:")
+
 
 # --- PÁGINA 1: DATASET & HIPÓTESES (EDA) ---
 def pagina_dataset_hipoteses():
@@ -652,11 +666,25 @@ def pagina_dataset_hipoteses():
         "Cada card traz o senso comum testado, o gráfico calculado sobre o dataset e o veredito."
     )
 
-    _card_h1()
-    _card_h2()
-    _card_h3()
-    _card_h4()
-    _card_h5()
+    aba1, aba2, aba3, aba4, aba5 = st.tabs(
+        [
+            ":material/work: H1 — Quem recebe mais candidaturas?",
+            ":material/payments: H2 — Senioridade paga mais?",
+            ":material/home: H3 — Remoto paga mais?",
+            ":material/business: H4 — Empresas maiores pagam mais?",
+            ":material/remove_red_eye: H5 — Transparência salarial é aleatória?",
+        ]
+    )
+    with aba1:
+        _card_h1()
+    with aba2:
+        _card_h2()
+    with aba3:
+        _card_h3()
+    with aba4:
+        _card_h4()
+    with aba5:
+        _card_h5()
 
     st.info(
         "**Prudência epistemológica:** os modelos não assumem causalidade absoluta — "
@@ -923,12 +951,29 @@ def _card_h5():
 
 
 # --- PÁGINA 2: SIMULADOR CBF ---
-def pagina_cbf():
-    st.header(":material/tune: Monte seu perfil — o sistema recomenda pelo que você DIZ (CBF)")
-    st.caption("🧑‍💼 Modo Candidato: aqui VOCÊ ensina o sistema — curtindo vagas e digitando skills. Funciona sem histórico (cold start).")
-    st.write("Digite palavras-chave para buscar vagas que você **GOSTOU** e vagas que você **REJEITOU**.")
+def _termos_que_casam(user_profile, item_idx, k=3):
+    """Top-k termos TF-IDF que mais contribuem para a similaridade da vaga.
 
-    lista_vagas_ui = (
+    Perfil e item são ambos unitários, então o produto elemento a elemento
+    soma exatamente a similaridade de cosseno — suas maiores parcelas são os
+    termos que explicam o match.
+    """
+    linha_item = np.asarray(recsys.matrix[int(item_idx)].todense()).ravel()
+    produto = np.asarray(user_profile).ravel() * linha_item
+    nomes = recsys.tfidf.get_feature_names_out()
+    ordem = produto.argsort()[::-1]
+    return [str(nomes[i]) for i in ordem if produto[i] > 0][:k]
+
+
+def _lista_seeds_cbf():
+    """Strings 'Título | Empresa (Nível)' → (opções, nome→posição na matriz).
+
+    Conserta um desvio latente do código antigo: o mapeamento usava posições da
+    lista .unique(), que divergem das linhas da matriz quando há vagas com
+    título+empresa repetidos. Aqui cada nome aponta para a PRIMEIRA posição real
+    no recsys.df (= linha da matriz TF-IDF).
+    """
+    nomes_ui = (
         recsys.df["title"].astype(str)
         + " | "
         + recsys.df["company_name"].astype(str)
@@ -936,63 +981,197 @@ def pagina_cbf():
         + recsys.df["formatted_experience_level"].astype(str)
         + ")"
     )
-    ui_to_idx = {name: idx for idx, name in enumerate(lista_vagas_ui)}
+    ui_to_idx = {}
+    for pos, nome in enumerate(nomes_ui):
+        ui_to_idx.setdefault(nome, pos)
+    return list(ui_to_idx.keys()), ui_to_idx
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader(":material/thumb_up: Vagas que você CURTIU")
-        liked_selections = st.multiselect(
-            "Selecione vagas para compor seu vetor positivo:", options=lista_vagas_ui.unique()
-        )
-    with col2:
-        st.subheader(":material/thumb_down: Vagas que você REJEITOU")
-        disliked_selections = st.multiselect(
-            "Selecione vagas para compor seu vetor negativo:", options=lista_vagas_ui.unique()
-        )
 
-    st.markdown("---")
+def pagina_cbf():
+    st.header(":material/tune: Monte seu perfil — o sistema recomenda pelo que você DIZ (CBF)")
+    st.caption("🧑‍💼 Modo Candidato: aqui VOCÊ ensina o sistema — curtindo vagas e digitando skills. Funciona sem histórico (cold start).")
 
-    st.subheader(":material/psychology: Suas Habilidades e Interesses (Cold Start)")
-    custom_skills = st.text_input(
-        "Digite competências, ferramentas ou cargo desejado (ex: Python, Machine Learning, React, AWS, Data Scientist):",
-        placeholder="Ex: Python, SQL, Docker, React",
-    )
+    # Estado do perfil/feedback (sessão atual; nada toca os modelos treinados)
+    st.session_state.setdefault("cbf_seed", None)        # {"pos": [...], "neg": [...], "skills": str}
+    st.session_state.setdefault("cbf_curtidas", set())   # job_ids do "Mais assim" dos cards
+    st.session_state.setdefault("cbf_descartadas", set())
 
-    st.markdown("---")
+    @st.fragment
+    def _bloco_cbf():
+        seed = st.session_state["cbf_seed"]
 
-    col_f1, col_f2 = st.columns(2)
-    with col_f1:
-        remote_only = st.checkbox("Exigir apenas Vagas Remotas?")
-    with col_f2:
-        top_n = st.slider("Quantas recomendações?", 5, 20, 10, key="slider_cbf")
-
-    if st.button("Gerar Recomendações", type="primary", icon=":material/auto_awesome:"):
-        if not liked_selections and not custom_skills.strip():
-            st.warning("Selecione pelo menos uma vaga curtida OU digite suas habilidades/cargo para criar seu perfil!")
-        else:
-            pos_idx = [ui_to_idx[x] for x in liked_selections]
-            neg_idx = [ui_to_idx[x] for x in disliked_selections]
-
-            user_profile = recsys.build_user_profile(
-                positive_indices=pos_idx,
-                negative_indices=neg_idx,
-                custom_text=custom_skills,
-                alpha=1.0,
-                beta=1.0,
-                gamma=1.0,
+        with st.expander("🌱 Monte suas sementes — vagas curtidas, rejeitadas e skills", expanded=seed is None):
+            opcoes, ui_to_idx = _lista_seeds_cbf()
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(":material/thumb_up: Vagas que você CURTIU")
+                liked = st.multiselect(
+                    "Vetor positivo (o perfil puxa para o texto destas vagas):",
+                    options=opcoes,
+                    key="cbf_ui_like",
+                )
+            with col2:
+                st.write(":material/thumb_down: Vagas que você REJEITOU")
+                disliked = st.multiselect(
+                    "Vetor negativo (o perfil empurra o texto destas vagas para longe):",
+                    options=opcoes,
+                    key="cbf_ui_nao",
+                )
+            skills = st.text_input(
+                "Competências, ferramentas ou cargo desejado (ex: Python, Machine Learning, AWS):",
+                placeholder="Ex: Python, SQL, Docker, React",
+                key="cbf_ui_skills",
             )
-            recs = recsys.recommend(user_profile, top_n=top_n, remote_only=remote_only)
+            if st.button("Gerar perfil e feed", type="primary", icon=":material/auto_awesome:"):
+                if not liked and not skills.strip():
+                    st.warning("Selecione pelo menos uma vaga curtida OU digite habilidades/cargo para criar seu perfil!")
+                else:
+                    st.session_state["cbf_seed"] = {
+                        "pos": [ui_to_idx[x] for x in liked],
+                        "neg": [ui_to_idx[x] for x in disliked],
+                        "skills": skills,
+                    }
+                    st.session_state["cbf_curtidas"] = set()
+                    st.session_state["cbf_descartadas"] = set()
+                    st.rerun(scope="fragment")
 
-            st.subheader(f"Top {top_n} Vagas Recomendadas para Você")
-            display_df = recs[
-                ["title", "company_name", "formatted_experience_level", "is_remote", "final_score", "ctr"]
-            ].copy()
-            display_df["is_remote"] = display_df["is_remote"].apply(lambda x: "Sim" if x == 1 else "Não")
-            display_df.columns = ["Título", "Empresa", "Nível", "Remoto?", "Score CBF", "CTR Bônus"]
-            st.dataframe(display_df, width="stretch", hide_index=True)
+        seed = st.session_state["cbf_seed"]
+        if seed is None:
+            st.info("Defina suas sementes acima — o **feed de vagas para você** aparece aqui, com explicação e feedback em cada card.")
+            return
+
+        with st.expander(":material/tune2: Ajustes finos do perfil (pesos α, β, γ)"):
+            col_a, col_b, col_c = st.columns(3)
+            alpha = col_a.slider("α — peso das curtidas", 0.0, 2.0, 1.0, 0.1,
+                                 help="Quanto o texto das vagas curtidas puxa o seu perfil.")
+            beta = col_b.slider("β — peso das rejeições", 0.0, 2.0, 1.0, 0.1,
+                                help="Quanto as vagas rejeitadas empurram termos para fora do perfil.")
+            gamma = col_c.slider("γ — peso das skills digitadas", 0.0, 2.0, 1.0, 0.1,
+                                 help="Peso do texto livre no perfil TF-IDF.")
+            st.caption("Os pesos atuam na soma dos vetores antes da normalização — ajuste e veja o ranking mudar na hora.")
+
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            remote_only = st.checkbox("Exigir apenas Vagas Remotas?", key="cbf_remoto")
+        with col_f2:
+            top_n = st.slider("Quantas recomendações?", 5, 20, 10, key="cbf_topn")
+
+        # O feedback dos cards entra como curtida extra no perfil
+        pos_idx = list(seed["pos"]) + [
+            _idx_por_job_cbf[j] for j in st.session_state["cbf_curtidas"]
+            if j in _idx_por_job_cbf
+        ]
+        user_profile = recsys.build_user_profile(
+            positive_indices=pos_idx,
+            negative_indices=seed["neg"],
+            custom_text=seed["skills"],
+            alpha=alpha,
+            beta=beta,
+            gamma=gamma,
+        )
+        descartadas = st.session_state["cbf_descartadas"]
+        recs = recsys.recommend(
+            user_profile, top_n=top_n + len(descartadas), remote_only=remote_only
+        )
+        recs = recs[~recs["job_id"].astype(int).isin(descartadas)].head(top_n)
+        if recs.empty:
+            st.info("Nada casou com o perfil nestes pesos — ajuste α/β/γ, remova filtros ou restaure as vagas descartadas.")
+            return
+
+        st.subheader(":material/auto_awesome: Vagas para você")
+        st.caption(
+            "👍 \"Mais assim\" entra no seu vetor de curtidas e \"✖ Não mostrar\" sai da lista — "
+            "o re-rankeamento é imediato: é o SEU perfil TF-IDF, não o modelo treinado."
+        )
+        houve_feedback = False
+        for item_idx, row in recs.iterrows():
+            _job_id = int(row["job_id"])
+            local, salario = _info_da_vaga(_job_id)
+            termos = _termos_que_casam(user_profile, item_idx)
+            explic = (
+                "Casa com seu perfil por: " + ", ".join(termos)
+                if termos
+                else "Sem termos em comum com seu perfil — ordenado pelo bônus de CTR."
+            )
+            if _job_id in st.session_state["cbf_curtidas"]:
+                explic += " · 👍 já no seu perfil"
+            clicou = card_vaga(
+                titulo=row["title"],
+                empresa=row["company_name"],
+                nivel=row["formatted_experience_level"],
+                local=local,
+                remoto=bool(row["is_remote"]),
+                salario=salario,
+                score_txt=str(int(round(row["similarity"] * 100))) + "%",
+                score_help="match com seu perfil",
+                explicacao=explic,
+                botoes=[
+                    {"label": "👍 Mais assim", "help": "Entra no seu vetor de curtidas e re-ranqueia o feed"},
+                    {"label": "✖ Não mostrar", "help": "Remove esta vaga do feed"},
+                ],
+                key="cbfcard_" + str(_job_id),
+            )
+            if clicou[0]:
+                st.session_state["cbf_curtidas"].add(_job_id)
+                houve_feedback = True
+            if clicou[1]:
+                st.session_state["cbf_descartadas"].add(_job_id)
+                houve_feedback = True
+
+        col_x1, col_x2 = st.columns(2)
+        if st.session_state["cbf_descartadas"] and col_x1.button(
+            ":material/undo: Restaurar vagas descartadas", key="cbf_undo"
+        ):
+            st.session_state["cbf_descartadas"] = set()
+            houve_feedback = True
+        if col_x2.button(":material/restart_alt: Refazer perfil do zero", key="cbf_reset"):
+            st.session_state["cbf_seed"] = None
+            st.session_state["cbf_curtidas"] = set()
+            st.session_state["cbf_descartadas"] = set()
+            for _k in ("cbf_ui_like", "cbf_ui_nao", "cbf_ui_skills"):
+                st.session_state.pop(_k, None)
+            houve_feedback = True
+        if houve_feedback:
+            st.rerun(scope="fragment")
+
+    _bloco_cbf()
 
 
 # --- PÁGINA 3: FILTRAGEM COLABORATIVA ---
+def _explicacao_cf(exp):
+    """Explica a nota em 1 linha pelo componente dominante da predição SVD."""
+    if exp is None:
+        return "Nota prevista pelo SVD — veja o waterfall abaixo para os componentes."
+    comps = {
+        "match": abs(exp["match_latente"]),
+        "b_i": abs(exp["b_i"]),
+        "b_u": abs(exp["b_u"]),
+    }
+    dom = max(comps, key=comps.get)
+    if comps[dom] < 0.05:
+        return "Nota próxima da média global — nenhum fator forte para este par usuário×vaga."
+    if dom == "match":
+        pos = exp["match_latente"] >= 0
+        return (
+            "Pessoas com DNA parecido com o deste perfil "
+            + ("avaliaram bem" if pos else "avaliaram mal")
+            + " esta vaga (afinidade latente)."
+        )
+    if dom == "b_i":
+        pos = exp["b_i"] >= 0
+        return (
+            "Esta vaga "
+            + ("é bem avaliada por todo mundo" if pos else "é mal avaliada em geral")
+            + " (viés da vaga)."
+        )
+    pos = exp["b_u"] >= 0
+    return (
+        "Este perfil "
+        + ("tende a avaliar bem as vagas" if pos else "tende a avaliar mal as vagas")
+        + " (viés do usuário)."
+    )
+
+
 def pagina_cf():
     st.header(":material/group: O sistema aprende pelo que você FAZ (CF)")
     st.caption("🧑‍💼 Modo Candidato: escolha um dos 5.000 perfis sintéticos e veja o que o modelo deduziu do comportamento dele — sem ler uma linha de currículo.")
@@ -1025,7 +1204,7 @@ def pagina_cf():
         perfil_df = pd.DataFrame(
             [{"Persona": k, "Peso": v} for k, v in rec_cf.persona_aprendida(user_id).items()]
         )
-        st.bar_chart(perfil_df.set_index("Persona"))
+        st.bar_chart(perfil_df.set_index("Persona"), height=180)
         st.dataframe(
             perfil_df.style.format({"Peso": "{:.2%}"}), width="stretch", hide_index=True
         )
@@ -1074,48 +1253,157 @@ def pagina_cf():
         filtro_persona=None if filtro_persona == "(todas)" else filtro_persona,
     )
 
-    display_cf = recs_cf.copy()
-    display_cf["Remoto?"] = display_cf["is_remote"].apply(lambda x: "Sim" if x == 1 else "Não")
-    display_cf["Persona"] = display_cf["fit_persona"].map(lambda p: ROTULO_PERSONAS.get(p, p))
-    display_cf["Nota prevista"] = display_cf["score_previsto"].round(2)
-    st.dataframe(
-        display_cf[
-            ["title", "company_name", "formatted_experience_level", "Remoto?", "Persona", "Nota prevista"]
-        ].rename(
-            columns={
-                "title": "Título",
-                "company_name": "Empresa",
-                "formatted_experience_level": "Nível",
-            }
-        ),
-        width="stretch",
-        hide_index=True,
-    )
+    # Feedback por usuario — simulacao didatica declarada (nada altera o SVD treinado)
+    st.session_state.setdefault("cf_descartadas", {})  # {user_id: set(job_ids)}
+    st.session_state.setdefault("cf_salvas", {})       # {user_id: set(job_ids)}
+    descartadas = st.session_state["cf_descartadas"].setdefault(user_id, set())
+    salvas = st.session_state["cf_salvas"].setdefault(user_id, set())
 
-    with st.expander(":material/query_stats: Explicabilidade: como o SVD chegou a essas notas?"):
+    recs_show = recs_cf[~recs_cf["job_id"].astype(int).isin(descartadas)]
+    houve_feedback = False
+
+    if not recs_cf.empty:
+        st.subheader(":material/auto_awesome: Vagas para este perfil")
         st.caption(
-            "Predição desmembrada: ŷ = μ (média global) + b_u (viés do usuário) "
-            "+ b_i (viés da vaga) + q_iᵀp_u (match latente persona × vaga). "
-            "Notas acima de 5 são truncadas para 5 (escala de avaliação)."
+            "✅ Salvar e ✖ Descartar controlam o feed desta sessão — **simulação didática**: "
+            "nada aqui altera o modelo SVD treinado (a nota prevista é sempre do modelo)."
         )
-        linhas_exp = []
-        for _, row in recs_cf.iterrows():
-            exp = rec_cf.explicar_recomendacao(user_id, row["job_id"])
-            if exp is not None:
-                linhas_exp.append(
-                    {
-                        "Vaga": row["title"],
-                        "μ (média global)": round(exp["mu"], 3),
-                        "b_u (viés usuário)": round(exp["b_u"], 3),
-                        "b_i (viés vaga)": round(exp["b_i"], 3),
-                        "q_iᵀp_u (match latente)": round(exp["match_latente"], 3),
-                        "ŷ (nota prevista)": round(exp["score"], 3),
-                    }
+    for _, row in recs_show.iterrows():
+        _job_id = int(row["job_id"])
+        local, salario = _info_da_vaga(_job_id)
+        exp = rec_cf.explicar_recomendacao(user_id, row["job_id"])
+        explic = _explicacao_cf(exp)
+        if _job_id in salvas:
+            explic += " · ✅ salva"
+        clicou = card_vaga(
+            titulo=row["title"],
+            empresa=row["company_name"],
+            nivel=row["formatted_experience_level"],
+            local=local,
+            remoto=bool(row["is_remote"]),
+            salario=salario,
+            score_txt=f"{row['score_previsto']:.1f}",
+            score_help="nota prevista /5",
+            explicacao=explic,
+            botoes=[
+                {"label": "✅ Salvar", "help": "Move para 'Suas vagas salvas' nesta sessão"},
+                {"label": "✖ Descartar", "help": "Remove do feed nesta sessão"},
+            ],
+            key="cfcard_" + str(_job_id),
+        )
+        if clicou[0] and _job_id not in salvas:
+            salvas.add(_job_id)
+            houve_feedback = True
+        if clicou[1]:
+            descartadas.add(_job_id)
+            salvas.discard(_job_id)
+            houve_feedback = True
+
+    col_b1, col_b2 = st.columns(2)
+    if recs_show.empty and descartadas:
+        st.info("Você descartou todas as vagas deste feed — restaure para continuar explorando.")
+    if descartadas and col_b1.button(":material/undo: Restaurar descartadas", key="cf_undo"):
+        descartadas.clear()
+        houve_feedback = True
+    if salvas and col_b2.button(":material/bookmark_remove: Limpar salvas", key="cf_limpa"):
+        salvas.clear()
+        houve_feedback = True
+    if houve_feedback:
+        st.rerun()
+
+    if salvas:
+        st.markdown("**:material/bookmarks: Suas vagas salvas nesta sessão**")
+        for _sid in sorted(salvas):
+            _linha = rec_cf.df[rec_cf.df["job_id"] == _sid]
+            if not _linha.empty:
+                _r = _linha.iloc[0]
+                _e = rec_cf.explicar_recomendacao(user_id, _sid)
+                local_s, sal_s = _info_da_vaga(_sid)
+                card_vaga(
+                    titulo=_r["title"],
+                    empresa=_r.get("company_name"),
+                    nivel=_r.get("formatted_experience_level"),
+                    local=local_s,
+                    remoto=bool(_r.get("is_remote")),
+                    salario=sal_s,
+                    score_txt=(f"{_e['score']:.1f}" if _e else "—"),
+                    score_help="nota prevista /5",
+                    explicacao="Salva por você — fora do ranking atual.",
+                    key="cfsalva_" + str(_sid),
                 )
-        if linhas_exp:
-            st.dataframe(pd.DataFrame(linhas_exp), width="stretch", hide_index=True)
-        else:
-            st.write("Predições indisponíveis para as vagas selecionadas (fora do treino).")
+
+    st.markdown("---")
+    st.subheader(":material.query_stats: Por que esta nota? (água do score SVD)")
+    _exp_ok = []
+    for _, row in recs_cf.iterrows():
+        _e = rec_cf.explicar_recomendacao(user_id, row["job_id"])
+        if _e is not None:
+            _exp_ok.append({"job_id": int(row["job_id"]), "title": row["title"], **_e})
+    if not _exp_ok:
+        st.write("Predições indisponíveis para as vagas selecionadas (fora do treino).")
+    else:
+        df_exp = pd.DataFrame(_exp_ok)
+        escolha = st.selectbox("Explique a vaga:", df_exp["title"].tolist(), key="cf_wf_vaga")
+        exp = df_exp[df_exp["title"] == escolha].iloc[0].to_dict()
+        etapas = [
+            {"etapa": "μ global", "start": 0.0, "end": exp["mu"], "delta": exp["mu"], "tipo": "base"},
+            {"etapa": "+ b_u", "start": exp["mu"],
+             "end": exp["mu"] + exp["b_u"], "delta": exp["b_u"], "tipo": "efeito"},
+            {"etapa": "+ b_i", "start": exp["mu"] + exp["b_u"],
+             "end": exp["mu"] + exp["b_u"] + exp["b_i"], "delta": exp["b_i"], "tipo": "efeito"},
+            {"etapa": "+ match", "start": exp["mu"] + exp["b_u"] + exp["b_i"],
+             "end": exp["score"], "delta": exp["match_latente"], "tipo": "efeito"},
+            {"etapa": "= ŷ final", "start": 0.0, "end": exp["score"],
+             "delta": exp["score"], "tipo": "total"},
+        ]
+        dfw = pd.DataFrame(etapas)
+        grafico_wf = (
+            alt.Chart(dfw)
+            .mark_bar()
+            .encode(
+                x=alt.X("etapa:N", sort=[e["etapa"] for e in etapas], title=None),
+                y=alt.Y("end:Q", title="nota prevista (escala 1–5)"),
+                y2=alt.Y2("start:Q"),
+                color=alt.Color(
+                    "delta:Q",
+                    scale=alt.Scale(domain=[-1.0, 0.0, 1.0], range=["#D64545", "#8899A6", "#1E7E34"]),
+                    legend=None,
+                ),
+                tooltip=[
+                    alt.Tooltip("etapa:N"),
+                    alt.Tooltip("delta:Q", format=".2f"),
+                ],
+            )
+            .properties(height=260)
+        )
+        col_w1, col_w2 = st.columns([0.60, 0.40])
+        with col_w1:
+            st.altair_chart(grafico_wf, use_container_width=True)
+        with col_w2:
+            st.markdown(
+                "**" + escolha + "**\n\n"
+                f"ŷ = {exp['mu']:.2f} {exp['b_u']:+.2f} {exp['b_i']:+.2f} "
+                f"{exp['match_latente']:+.2f} = **{exp['score']:.2f}** (truncado p/ escala 1–5)"
+            )
+            st.caption(_explicacao_cf(exp))
+            st.caption(
+                "μ = média global · b_u = viés do usuário · b_i = viés da vaga · "
+                "match = afinidade latente persona × vaga (q_iᵀp_u)."
+            )
+        with st.expander(":material/table_chart: Componentes de todas as vagas do ranking"):
+            tabela_exp = pd.DataFrame(
+                {
+                    "Vaga": df_exp["title"],
+                    "μ (média global)": df_exp["mu"].round(3),
+                    "b_u (viés usuário)": df_exp["b_u"].round(3),
+                    "b_i (viés vaga)": df_exp["b_i"].round(3),
+                    "q_iᵀp_u (match latente)": df_exp["match_latente"].round(3),
+                    "ŷ (nota prevista)": df_exp["score"].round(3),
+                }
+            )
+            st.dataframe(tabela_exp, width="stretch", hide_index=True)
+
+
 
 
 # --- PÁGINA 4: COMPARATIVO ---
