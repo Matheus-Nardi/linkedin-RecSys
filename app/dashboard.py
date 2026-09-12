@@ -1084,18 +1084,26 @@ def pagina_cbf():
             gamma=gamma,
         )
         descartadas = st.session_state["cbf_descartadas"]
+        curtidas = st.session_state["cbf_curtidas"]
+        # Vagas que o usuario ja conhece (sementes curtidas + curtidas do feed)
+        # SAEM do feed — como em produto real: o valor delas e terem entrado no
+        # perfil, nao serem recomendadas de novo.
+        vistos = {int(recsys.df.iloc[p]["job_id"]) for p in seed["pos"]} | set(curtidas)
         recs = recsys.recommend(
-            user_profile, top_n=top_n + len(descartadas), remote_only=remote_only
+            user_profile,
+            top_n=top_n + len(descartadas) + len(vistos),
+            remote_only=remote_only,
         )
-        recs = recs[~recs["job_id"].astype(int).isin(descartadas)].head(top_n)
+        recs = recs[~recs["job_id"].astype(int).isin(descartadas | vistos)].head(top_n)
         if recs.empty:
             st.info("Nada casou com o perfil nestes pesos — ajuste α/β/γ, remova filtros ou restaure as vagas descartadas.")
             return
 
         st.subheader(":material/auto_awesome: Vagas para você")
         st.caption(
-            "👍 \"Mais assim\" entra no seu vetor de curtidas e \"✖ Não mostrar\" sai da lista — "
-            "o re-rankeamento é imediato: é o SEU perfil TF-IDF, não o modelo treinado."
+            "👍 **Curtir**: a vaga entra no seu vetor positivo e sai do feed (você já a "
+            "conhece). ✖ **Não mostrar**: some da lista. O re-rankeamento é imediato — é "
+            "o SEU perfil TF-IDF, não o modelo treinado."
         )
         houve_feedback = False
         for item_idx, row in recs.iterrows():
@@ -1107,8 +1115,6 @@ def pagina_cbf():
                 if termos
                 else "Sem termos em comum com seu perfil — ordenado pelo bônus de CTR."
             )
-            if _job_id in st.session_state["cbf_curtidas"]:
-                explic += " · 👍 já no seu perfil"
             clicou = card_vaga(
                 titulo=row["title"],
                 empresa=row["company_name"],
@@ -1120,24 +1126,48 @@ def pagina_cbf():
                 score_help="match com seu perfil",
                 explicacao=explic,
                 botoes=[
-                    {"label": "👍 Mais assim", "help": "Entra no seu vetor de curtidas e re-ranqueia o feed"},
+                    {"label": "👍 Curtir", "help": "Entra no seu vetor de curtidas (perfil real) e a vaga sai do feed"},
                     {"label": "✖ Não mostrar", "help": "Remove esta vaga do feed"},
                 ],
                 key="cbfcard_" + str(_job_id),
             )
             if clicou[0]:
-                _ja = _job_id in st.session_state["cbf_curtidas"]
                 st.session_state["cbf_curtidas"].add(_job_id)
-                st.toast(
-                    "Esta vaga já estava no seu perfil" if _ja
-                    else "Vaga adicionada ao seu perfil — feed re-ranqueado",
-                    icon="👍",
-                )
+                st.toast("Curtida no perfil TF-IDF — a vaga saiu do feed e o ranking mudou", icon="👍")
                 houve_feedback = True
             if clicou[1]:
                 st.session_state["cbf_descartadas"].add(_job_id)
                 st.toast("Vaga removida do feed", icon="🚫")
                 houve_feedback = True
+
+        if curtidas:
+            st.markdown("**👍 Suas curtidas — estas vagas estão puxando o seu perfil**")
+            for _jid in sorted(curtidas):
+                _pos = _idx_por_job_cbf.get(_jid)
+                if _pos is None:
+                    continue
+                _r = recsys.df.iloc[_pos]
+                _local_c, _sal_c = _info_da_vaga(_jid)
+                _sim = float(
+                    np.dot(user_profile, np.asarray(recsys.matrix[_pos].todense()).ravel())
+                )
+                clicou_c = card_vaga(
+                    titulo=_r["title"],
+                    empresa=_r["company_name"],
+                    nivel=_r["formatted_experience_level"],
+                    local=_local_c,
+                    remoto=bool(_r["is_remote"]),
+                    salario=_sal_c,
+                    score_txt=str(int(round(_sim * 100))) + "%",
+                    score_help="match com seu perfil",
+                    explicacao="Foi você quem curtiu — está no vetor positivo do perfil.",
+                    botoes=[{"label": "↩️ Descurtir", "help": "Tira do perfil e devolve ao feed"}],
+                    key="cbfcurt_" + str(_jid),
+                )
+                if clicou_c[0]:
+                    st.session_state["cbf_curtidas"].discard(_jid)
+                    st.toast("Curtida desfeita — a vaga volta a poder aparecer no feed", icon="↩️")
+                    houve_feedback = True
 
         col_x1, col_x2 = st.columns(2)
         if st.session_state["cbf_descartadas"] and col_x1.button(
@@ -1280,22 +1310,26 @@ def pagina_cf():
     descartadas = st.session_state["cf_descartadas"].setdefault(user_id, set())
     salvas = st.session_state["cf_salvas"].setdefault(user_id, set())
 
-    recs_show = recs_cf[~recs_cf["job_id"].astype(int).isin(descartadas)]
+    recs_show = recs_cf[~recs_cf["job_id"].astype(int).isin(descartadas | salvas)]
     houve_feedback = False
 
     if not recs_cf.empty:
         st.subheader(":material/auto_awesome: Vagas para este perfil")
         st.caption(
-            "✅ Salvar e ✖ Descartar controlam o feed desta sessão — **simulação didática**: "
-            "nada aqui altera o modelo SVD treinado (a nota prevista é sempre do modelo)."
+            "👍 **Curtir** e ✖ **Não mostrar** controlam o feed desta sessão — **simulação "
+            "didática**: nada aqui altera o modelo SVD treinado (a nota prevista é sempre do modelo)."
+        )
+        st.caption(
+            "Por que tantas notas 5,0? A afinidade sintética satura no teto da escala em "
+            "muitas vagas compatíveis com a persona do perfil. A nota exibida é truncada "
+            "em 5, mas a ORDEM do ranking usa o escore bruto (μ + b_u + b_i + match, sem "
+            "truncatura) — por isso cada card mostra o \"bruto\" ao lado da nota."
         )
     for _, row in recs_show.iterrows():
         _job_id = int(row["job_id"])
         local, salario = _info_da_vaga(_job_id)
         exp = rec_cf.explicar_recomendacao(user_id, row["job_id"])
         explic = _explicacao_cf(exp)
-        if _job_id in salvas:
-            explic += " · ✅ salva"
         clicou = card_vaga(
             titulo=row["title"],
             empresa=row["company_name"],
@@ -1304,17 +1338,17 @@ def pagina_cf():
             remoto=bool(row["is_remote"]),
             salario=salario,
             score_txt=f"{row['score_previsto']:.1f}",
-            score_help="nota prevista /5",
+            score_help=f"nota /5 · bruto {row['score_bruto']:.1f}",
             explicacao=explic,
             botoes=[
-                {"label": "✅ Salvar", "help": "Move para 'Suas vagas salvas' nesta sessão"},
-                {"label": "✖ Descartar", "help": "Remove do feed nesta sessão"},
+                {"label": "👍 Curtir", "help": "Move para 'Suas curtidas' — simulação didática, não re-treina o SVD"},
+                {"label": "✖ Não mostrar", "help": "Remove do feed nesta sessão"},
             ],
             key="cfcard_" + str(_job_id),
         )
         if clicou[0] and _job_id not in salvas:
             salvas.add(_job_id)
-            st.toast("Vaga salva na sua lista", icon="🔖")
+            st.toast("Curtida registrada — o SVD não muda (simulação didática)", icon="👍")
             houve_feedback = True
         if clicou[1]:
             descartadas.add(_job_id)
@@ -1335,14 +1369,14 @@ def pagina_cf():
         st.rerun()
 
     if salvas:
-        st.markdown("**:material/bookmarks: Suas vagas salvas nesta sessão**")
+        st.markdown("**👍 Suas curtidas nesta sessão — simulação didática (não re-treina o SVD)**")
         for _sid in sorted(salvas):
             _linha = rec_cf.df[rec_cf.df["job_id"] == _sid]
             if not _linha.empty:
                 _r = _linha.iloc[0]
                 _e = rec_cf.explicar_recomendacao(user_id, _sid)
                 local_s, sal_s = _info_da_vaga(_sid)
-                card_vaga(
+                clicou_s = card_vaga(
                     titulo=_r["title"],
                     empresa=_r.get("company_name"),
                     nivel=_r.get("formatted_experience_level"),
@@ -1351,9 +1385,16 @@ def pagina_cf():
                     salario=sal_s,
                     score_txt=(f"{_e['score']:.1f}" if _e else "—"),
                     score_help="nota prevista /5",
-                    explicacao="Salva por você — fora do ranking atual.",
+                    explicacao="Curtiu — fora do feed; o modelo não mudou.",
+                    botoes=[{"label": "↩️ Descurtir", "help": "Devolve a vaga ao feed"}],
                     key="cfsalva_" + str(_sid),
                 )
+                if clicou_s[0]:
+                    salvas.discard(_sid)
+                    st.toast("Curtida desfeita — a vaga volta ao feed", icon="↩️")
+                    houve_feedback = True
+        if houve_feedback:
+            st.rerun()
 
     st.markdown("---")
     st.subheader(":material.query_stats: Por que esta nota? (água do score SVD)")
@@ -1375,7 +1416,8 @@ def pagina_cf():
             {"etapa": "+ b_i", "start": exp["mu"] + exp["b_u"],
              "end": exp["mu"] + exp["b_u"] + exp["b_i"], "delta": exp["b_i"], "tipo": "efeito"},
             {"etapa": "+ match", "start": exp["mu"] + exp["b_u"] + exp["b_i"],
-             "end": exp["score"], "delta": exp["match_latente"], "tipo": "efeito"},
+             "end": exp["mu"] + exp["b_u"] + exp["b_i"] + exp["match_latente"],
+             "delta": exp["match_latente"], "tipo": "efeito"},
             {"etapa": "= ŷ final", "start": 0.0, "end": exp["score"],
              "delta": exp["score"], "tipo": "total"},
         ]

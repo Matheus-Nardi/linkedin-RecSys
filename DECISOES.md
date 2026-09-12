@@ -267,6 +267,15 @@ Resultado da execução final (dados v3, 602.216 interações, split 80/20):
 | **Por quê** | Cores espalhadas em constantes faziam cada tela parecer de outro projeto; e card de vaga sem localização não lembra o produto simulado |
 | **Consequência** | Identidade visual consistente; badge de salário aparece **só quando existe** (~50% das vagas — a opacidade salarial do H5 em tempo real). **Rejeitados com motivo:** logos reais das empresas (sem assets/licença) e "publicado há X dias" (dataset 2023–24 exibiria um estalecimento que pareceria bug) |
 
+### Decisão D7: Feedback padronizado entre CBF e CF + ranking CF pelo escore bruto
+
+| | |
+|---|---|
+| **O que era** | Duas paletas de botões ("Mais assim"/"Não mostrar" na CBF × "Salvar"/"Descartar" na CF); curtir uma vaga na CBF a mantinha no feed com o próprio % de match inflado (efeito colateral matemático: adicionar o texto da vaga ao perfil aproxima o perfil dela — o cosseno sobe); e o Top-N da CF exibia dezenas de notas 5,0 empatadas numa ordem arbitrária de catálogo |
+| **O que é agora** | **Botões idênticos nas duas páginas**: 👍 Curtir / ✖ Não mostrar (+ ↩️ Descurtir na lista de curtidas), com a MESMA semântica de feed — curtir tira a vaga do feed e a move para "Suas curtidas" (produto real não recomenda o que você já engajou). O que muda entre as páginas é só o rótulo do efeito: na CBF curtir altera de fato o perfil TF-IDF; na CF é simulação didática declarada. **Motor:** prever_scores ganhou o parâmetro clip=False e recomendar() ordena por score_bruto (μ+b_u+b_i+match sem truncatura), exibindo a nota clipada + o bruto no card |
+| **Por quê** | Padronização elimina a confusão "salvar ≠ curtir?" e o bruto resolve o empate-saturação: a afinidade sintética satura em 1,0 → várias notas previstas passam de 5 e viram 5,0 no clip; ordenar pelo clipado era ORDEM DE CATÁLOGO disfarçada de ranking (a mesma saturação explica o "90% nota 5" observado e por que o viés dominante no topo costuma ser b_i — as vagas que todo mundo avalia bem) |
+| **Consequência** | Feed honesto e comparável entre as duas técnicas; caption "por que tantas notas 5,0?" na página CF; waterfall corrige a barra "+ match" para terminar no valor bruto real |
+
 ## ❌ O que NÃO foi feito (e por quê)
 
 | Decisão | Por quê |
