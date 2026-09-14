@@ -1,0 +1,38 @@
+\section{Introdução}
+
+% ==============================================================================
+% 1. CONTEXTUALIZAÇÃO E OBJETIVO DO PROJETO
+% ==============================================================================
+Este documento formaliza as decisões de engenharia, modelagem matemática e arquitetura de software desenvolvidas no âmbito da disciplina de \textbf{Tópicos Especiais em Sistemas de Recomendação}, do curso de Sistemas de Informação da Universidade Estadual do Tocantins (UNITINS). 
+
+O projeto fundamenta-se na adoção prática do \textbf{TDSP (\textit{Team Data Science Process})}, uma metodologia ágil e iterativa de ciência de dados corporativa proposta pela Microsoft. O objetivo central foi percorrer o ciclo de vida integral de um Sistema de Recomendação (\textit{RecSys}), permitindo uma aplicação téorica e pratica aderente aos requisitos de sustentabilidade e governança de software.
+
+O ciclo de desenvolvimento contemplou as seguintes etapas estruturantes:
+\begin{enumerate}
+    \item \textbf{Seleção e Ingestão da Base de Dados:} Escolha de um conjunto de dados representativo do mercado real de trabalho em tecnologia;
+    \item \textbf{Análise Exploratória de Dados (EDA):} Investigação empírica de padrões mercadológicos e validação estatística de hipóteses estratégicas de negócio;
+    \item \textbf{Filtragem Baseada em Conteúdo (CBF):} Modelagem vetorial semântica via TF-IDF com identificadores compostos e ponderação empírica de engajamento;
+    \item \textbf{Filtragem Colaborativa (CF):} Fatoração matricial via Decomposição em Valores Singulares (SVD) sobre fatores latentes com explicabilidade aditiva;
+    \item \textbf{Concepção da Filtragem Híbrida:} Planejamento evolutivo para a fusão ponderada e chaveamento dinâmico (\textit{switching}) para mitigação de \textit{cold start};
+    \item \textbf{Entrega do Produto e Auditoria Técnica:} Desenvolvimento de um painel interativo em Streamlit acompanhado deste documento analítico para análise e avaliação crítica da professora.
+\end{enumerate}
+
+% ==============================================================================
+% 2. O CONJUNTO DE DADOS (DATASET)
+% ==============================================================================
+\subsection{Visão Geral do Conjunto de Dados}
+
+A base primária selecionada para a condução do projeto é o \textit{LinkedIn Job Postings (2023--2024)}, composto por anúncios verídicos de emprego coletados na plataforma profissional:
+\begin{itemize}
+    \item \textbf{Volume e Granularidade:} O catálogo bruto (\texttt{data/raw/postings.csv}) reúne mais de 123 mil anúncios de vagas de trabalho, acompanhado da base relacional de metadados corporativos (\texttt{data/raw/companies/companies.csv}) com segmentação de porte empresarial e setor de atuação;
+    \item \textbf{Atributos Textuais e Categoriais:} Cada registro abrange título da posição, descrição detalhada, competências técnicas requeridas (\textit{skills}), nível de senioridade corporativa (\textit{entry level}, pleno, sênior) e modalidade de contratação (presencial, híbrida ou remota);
+    \item \textbf{Métricas Comportamentais de Mercado:} A base inclui o volume de visualizações de página (\textit{views}) e candidaturas efetivas registradas (\textit{applies}), viabilizando o cálculo da taxa de conversão (\textit{Click-Through Rate} -- CTR), métrica adotada como sinal empírico de atratividade mercadológica;
+    \item \textbf{Matriz de Interações e Conformidade com a LGPD:} Diante da indisponibilidade pública de dados de histórico privado de navegação de candidatos e em estrito cumprimento à Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018), foi estruturada uma matriz controlada com 602.216 avaliações explícitas (notas de 1 a 5) atribuídas por 5.000 personas sintéticas bem caracterizadas (\texttt{interacoes.parquet}), permitindo o treinamento e a auditoria rigorosa dos modelos colaborativos sem infringir preceitos éticos ou legais.
+\end{itemize}
+
+% ==============================================================================
+% 3. ESTRUTURAÇÃO DO DOCUMENTO
+% ==============================================================================
+\subsection{Organização do Documento}
+
+Este trabalho está estruturado da seguinte forma: inicialmente, a Seção~2 apresenta a Arquitetura Alvo e a especificação técnica do fluxo por aba sob a ótica do TDSP, contemplando o mapeamento das etapas atuais e o planejamento da evolução híbrida. Posteriormente, são detalhadas as formulações matemáticas e os pipelines práticos dos modelos de Filtragem Baseada em Conteúdo e Filtragem Colaborativa. Em seguida, são expostos os protocolos experimentais, os resultados comparativos auditados e a análise estatística frente a baselines e limites de ruído. Por fim, consolidam-se as considerações finais, lições aprendidas e os direcionamentos futuros da solução.
