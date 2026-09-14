@@ -44,5 +44,6 @@ docs/estrutura-eda.md
 .vscode/
 .idea/
 
-# 8. Ferramentas
+# 8. Ferramentas e Temporários
 .agents/
+temp/
