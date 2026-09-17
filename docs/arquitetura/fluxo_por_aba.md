@@ -26,7 +26,7 @@ Cada aba documentada na Arquitetura Alvo deve seguir rigorosamente estes **5 com
 2. **Fontes de Dados & Artefatos:** De onde os dados saem (arquivos brutos `.csv`, dados pré-processados `.parquet` ou modelos serializados `.pkl`).
 3. **Cadeia de Processamento (Pipeline de Lógica):** Quais transformações matemáticas ocorrem (ex.: TF-IDF, similaridade de cosseno, produto interno de fatores latentes, filtros de interface).
 4. **Comportamento sob Limitações / Fallback:** Como a aba reage caso falte histórico (*cold start*) ou parâmetros do usuário.
-5. **Diagrama Arquitetural de Fluxo:** Representação gráfica clara (Mermaid) demonstrando a jornada do dado.
+5. **Diagrama de Fluxo:** Representação visual do fluxo de dados, detalhando as etapas de entrada, processamento e saída.
 
 ---
 

@@ -4,9 +4,9 @@
 % ==============================================================================
 % 1. CONTEXTUALIZAÇÃO E OBJETIVO DO PROJETO
 % ==============================================================================
-Este documento formaliza as decisões de engenharia, modelagem matemática e arquitetura de software desenvolvidas no âmbito da disciplina de \textbf{Tópicos Especiais em Sistemas de Recomendação}, do curso de Sistemas de Informação da Universidade Estadual do Tocantins (UNITINS). 
+Este documento apresenta o projeto, a implementação e a avaliação experimental de um sistema de recomendação de vagas de emprego, desenvolvido no âmbito da disciplina de \textbf{Tópicos Especiais em Sistemas de Recomendação} do curso de Sistemas de Informação da Universidade Estadual do Tocantins (UNITINS). 
 
-O projeto fundamenta-se na adoção prática do \textbf{TDSP (\textit{Team Data Science Process})}, uma metodologia ágil e iterativa de ciência de dados corporativa proposta pela Microsoft. O objetivo central foi percorrer o ciclo de vida integral de um Sistema de Recomendação (\textit{RecSys}), permitindo uma aplicação téorica e pratica aderente aos requisitos de sustentabilidade e governança de software.
+O projeto fundamenta-se na metodologia \textbf{TDSP (\textit{Team Data Science Process})}, estruturando o ciclo de desenvolvimento de ciência de dados. O objetivo central consiste em articular a fundamentação teórica com a aplicação prática de um \textit{pipeline} completo de recomendação (\textit{RecSys}), compreendendo desde a ingestão e análise exploratória dos dados até a modelagem, avaliação comparativa e disponibilização dos algoritmos.
 
 O ciclo de desenvolvimento contemplou as seguintes etapas estruturantes:
 \begin{enumerate}
@@ -15,7 +15,7 @@ O ciclo de desenvolvimento contemplou as seguintes etapas estruturantes:
     \item \textbf{Filtragem Baseada em Conteúdo (CBF):} Modelagem vetorial semântica via TF-IDF com identificadores compostos e ponderação empírica de engajamento;
     \item \textbf{Filtragem Colaborativa (CF):} Fatoração matricial via Decomposição em Valores Singulares (SVD) sobre fatores latentes com explicabilidade aditiva;
     \item \textbf{Concepção da Filtragem Híbrida:} Planejamento evolutivo para a fusão ponderada e chaveamento dinâmico (\textit{switching}) para mitigação de \textit{cold start};
-    \item \textbf{Entrega do Produto e Auditoria Técnica:} Desenvolvimento de um painel interativo em Streamlit acompanhado deste documento analítico para análise e avaliação crítica da professora.
+    \item \textbf{Entrega do Produto e Auditoria Técnica:} Desenvolvimento de um painel interativo em Streamlit acompanhado deste documento analítico para auditoria técnica e avaliação experimental dos resultados obtidos.
 \end{enumerate}
 
 % ==============================================================================
@@ -25,10 +25,10 @@ O ciclo de desenvolvimento contemplou as seguintes etapas estruturantes:
 
 A base primária selecionada para a condução do projeto é o \textit{LinkedIn Job Postings (2023--2024)}, composto por anúncios verídicos de emprego coletados na plataforma profissional:
 \begin{itemize}
-    \item \textbf{Volume e Granularidade:} O catálogo bruto (\texttt{data/raw/postings.csv}) reúne mais de 123 mil anúncios de vagas de trabalho, acompanhado da base relacional de metadados corporativos (\texttt{data/raw/companies/companies.csv}) com segmentação de porte empresarial e setor de atuação;
+    \item \textbf{Volume e Granularidade:} O catálogo bruto reúne mais de 123 mil anúncios de vagas de emprego, acompanhado de uma base relacional complementar com dados cadastrais, segmentação de porte empresarial e setor de atuação das empresas;
     \item \textbf{Atributos Textuais e Categoriais:} Cada registro abrange título da posição, descrição detalhada, competências técnicas requeridas (\textit{skills}), nível de senioridade corporativa (\textit{entry level}, pleno, sênior) e modalidade de contratação (presencial, híbrida ou remota);
     \item \textbf{Métricas Comportamentais de Mercado:} A base inclui o volume de visualizações de página (\textit{views}) e candidaturas efetivas registradas (\textit{applies}), viabilizando o cálculo da taxa de conversão (\textit{Click-Through Rate} -- CTR), métrica adotada como sinal empírico de atratividade mercadológica;
-    \item \textbf{Matriz de Interações e Conformidade com a LGPD:} Diante da indisponibilidade pública de dados de histórico privado de navegação de candidatos e em estrito cumprimento à Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018), foi estruturada uma matriz controlada com 602.216 avaliações explícitas (notas de 1 a 5) atribuídas por 5.000 personas sintéticas bem caracterizadas (\texttt{interacoes.parquet}), permitindo o treinamento e a auditoria rigorosa dos modelos colaborativos sem infringir preceitos éticos ou legais.
+    \item \textbf{Natureza Centrada em Itens:} Por se tratar de uma extração pública de anúncios de emprego, o conjunto é composto exclusivamente por metadados de catálogo e métricas agregadas de engajamento, sem rastreamento de interações individualizadas de candidatos. Essa característica viabiliza diretamente a modelagem por Filtragem Baseada em Conteúdo (CBF), ao mesmo tempo em que demanda uma estratégia posterior de composição de interações para as etapas de Filtragem Colaborativa (CF).
 \end{itemize}
 
 % ==============================================================================

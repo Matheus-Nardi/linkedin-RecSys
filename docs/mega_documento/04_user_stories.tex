@@ -74,7 +74,7 @@ A homologação da US5 é delimitada por 3 cenários operacionais no padrão BDD
 
 \paragraph{Cenário 1: Auditoria do Duelo de Modelos e Piso Irredutível de Ruído.}
 \begin{itemize}[leftmargin=1.5em, itemsep=2pt]
-    \item \textbf{Dado que} o avaliador acessa o \textit{Modo Avaliador $\to$ Duelo dos Modelos} no painel interativo (\texttt{app/dashboard.py});
+    \item \textbf{Dado que} o avaliador acessa o \textit{Modo Avaliador $\to$ Duelo dos Modelos} no painel interativo da aplicação;
     \item \textbf{Quando} inspeciona o quadro comparativo consolidado pelas 8 abordagens técnicas (chutes triviais, baseline de popularidade, oráculo, CBF quantitativa, KNN e SVD);
     \item \textbf{Então} o sistema deve comprovar empiricamente a superioridade do modelo SVD ($\text{RMSE} = 0{,}625$ e $\text{Precision@10} = 1{,}000$) contra o KNN ($\text{RMSE} = 1{,}263$ e $\text{Precision@10} = 0{,}874$) com significância atestada pelo teste de Wilcoxon ($p < 0{,}05$), evidenciando que o erro do SVD situa-se a apenas $1{,}20\times$ do piso teórico bayesiano do oráculo ($\text{RMSE}_{\text{oráculo}} = 0{,}5214$).
     \item \textit{Rastreabilidade Arquitetural:} Fluxo 4 da Arquitetura Alvo (\ref{fig:fluxo_aba4}).
@@ -84,7 +84,7 @@ A homologação da US5 é delimitada por 3 cenários operacionais no padrão BDD
 \begin{itemize}[leftmargin=1.5em, itemsep=2pt]
     \item \textbf{Dado que} o avaliador acessa a página \textit{Como avaliamos \& limitações} (Fluxo 5);
     \item \textbf{Quando} consulta o painel de governança e integridade de artefatos;
-    \item \textbf{Então} o sistema deve discriminar a data/hora e o script exato gerador de cada artefato serializado (\texttt{metadados\_cf.pkl} e \texttt{metadados\_cbf.pkl}), comprovar a conformidade com a LGPD pelo uso de dados corporativos públicos e personas sintéticas sem qualquer PII, e declarar explicitamente a natureza \textit{self-fulfilling} da avaliação bilinear e as limitações de cobertura textual do catálogo.
+    \item \textbf{Então} o sistema deve discriminar a data/hora e o módulo gerador de cada artefato serializado de métricas, comprovar a conformidade com a LGPD pelo uso de dados corporativos públicos e personas sintéticas sem qualquer PII, e declarar explicitamente a natureza \textit{self-fulfilling} da avaliação bilinear e as limitações de cobertura textual do catálogo.
 \end{itemize}
 
 \paragraph{Cenário 3: Julgamento Técnico da Necessidade de Hibridização.}
@@ -101,7 +101,7 @@ A homologação da US5 é delimitada por 3 cenários operacionais no padrão BDD
 \subsection{Matriz Geral de Rastreabilidade do Sistema}
 \label{sec:matriz_rastreabilidade}
 
-Para assegurar o fechamento metodológico do TDSP e conectar formalmente o valor de negócio à engenharia de software desenvolvida, a Tabela~\ref{tab:matriz_rastreabilidade} sintetiza o encadeamento integral entre as 5 Histórias de Usuário, as personas centrais, os módulos de código em \texttt{src/}, os modos de navegação do dashboard e as métricas de validação empírica.
+Para assegurar o fechamento metodológico do TDSP e conectar formalmente o valor de negócio à engenharia de software desenvolvida, a Tabela~\ref{tab:matriz_rastreabilidade} sintetiza o encadeamento integral entre as 5 Histórias de Usuário, as personas centrais, os módulos funcionais do sistema, os modos de navegação do dashboard e as métricas de validação empírica.
 
 \begin{table}[H]
 \centering
@@ -112,12 +112,12 @@ Para assegurar o fechamento metodológico do TDSP e conectar formalmente o valor
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}llllll@{}}
 \toprule
-\textbf{User Story} & \textbf{Persona Central} & \textbf{Fase} & \textbf{Modo no Dashboard} & \textbf{Módulo de Código} & \textbf{Métrica de Validação} \\ \midrule
-\textbf{US 1 (Mercado)} & Candidato em Recolocação & 1 & Modo Candidato $\to$ EDA (Tabs H1--H5) & \texttt{src/gerar\_figuras\_eda.py} & Medianas Salariais e Salto de CTR \\
-\textbf{US 2 (Cold Start)} & Candidato sem Histórico & 1 & Modo Candidato $\to$ Simulador CBF & \texttt{src/recomendador.py} & Cosseno $\ge 0{,}50$ e Re-ranking Scoped \\
-\textbf{US 3 (Perfil Latente)} & Plataforma / Recrutador & 2 & Modo Candidato $\to$ Feed CF (SVD) & \texttt{src/filtragem\_colaborativa.py} & Precision@10 ($1{,}000$) e Escore Bruto \\
-\textbf{US 4 (Explicabilidade)} & Candidato com Histórico & 2 & Modo Candidato $\to$ Waterfall Altair & \texttt{src/filtragem\_colaborativa.py} & Decomposição Aditiva $\mu + b_u + b_i + q_i^T p_u$ \\
-\textbf{US 5 (Avaliador)} & Professora / Avaliador & 3 & Modo Avaliador $\to$ Duelo e Limitações & \texttt{src/executar\_modelagem.py} & Wilcoxon ($p < 0{,}05$), Oráculo e P@10 CBF \\ \bottomrule
+\textbf{User Story} & \textbf{Persona Central} & \textbf{Fase} & \textbf{Modo no Dashboard} & \textbf{Componente / Módulo} & \textbf{Métrica de Validação} \\ \midrule
+\textbf{US 1 (Mercado)} & Candidato em Recolocação & 1 & Modo Candidato $\to$ EDA (Tabs H1--H5) & Módulo de EDA \& Limpeza & Medianas Salariais e Salto de CTR \\
+\textbf{US 2 (Cold Start)} & Candidato sem Histórico & 1 & Modo Candidato $\to$ Simulador CBF & Motor CBF (\textit{RecSysCBF}) & Cosseno $\ge 0{,}50$ e Re-ranking Scoped \\
+\textbf{US 3 (Perfil Latente)} & Plataforma / Recrutador & 2 & Modo Candidato $\to$ Feed CF (SVD) & Motor CF (SVD Latente) & Precision@10 ($1{,}000$) e Escore Bruto \\
+\textbf{US 4 (Explicabilidade)} & Candidato com Histórico & 2 & Modo Candidato $\to$ Waterfall Altair & Explicabilidade CF (Altair) & Decomposição Aditiva $\mu + b_u + b_i + q_i^T p_u$ \\
+\textbf{US 5 (Avaliador)} & Professora / Avaliador & 3 & Modo Avaliador $\to$ Duelo e Limitações & Pipeline de Benchmarking & Wilcoxon ($p < 0{,}05$), Oráculo e P@10 CBF \\ \bottomrule
 \end{tabular}%
 }
 \end{table}

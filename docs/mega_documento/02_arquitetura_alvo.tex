@@ -19,10 +19,10 @@ Para assegurar consistência metodológica, homogeneidade na documentação e fa
 
 \begin{enumerate}[label=\textbf{\arabic*.}]
     \item \textbf{Objetivo \& User Story Vinculada:} Define com precisão o problema de negócio resolvido pela aba e qual persona destinatária ela atende (\textit{Candidato}, \textit{Recrutador} ou \textit{Professora}).
-    \item \textbf{Fontes de Dados \& Artefatos:} Identifica formalmente a origem dos insumos consumidos, distinguindo arquivos brutos (\texttt{.csv}), dados pré-processados de alta performance (\texttt{.parquet}) e modelos serializados e metadados (\texttt{.pkl}).
-    \item \textbf{Cadeia de Processamento (Pipeline de Lógica):} Detalha o conjunto de transformações matemáticas e operações vetoriais executadas (como ponderação léxica, vetorização TF-IDF, similaridade por cosseno, decomposição SVD com produto interno de fatores latentes, fusão empírica e ordenações).
-    \item \textbf{Comportamento sob Limitações / Fallback:} Estipula como a aba reage em cenários de exceção, inicialização a frio (\textit{cold start}), ausência de parâmetros ou ausência em disco de arquivos auxiliares de metadados.
-    \item \textbf{Diagrama Arquitetural de Fluxo:} Ilustra esquematicamente e de forma inequívoca a trajetória do dado da interface aos modelos e de volta à tela.
+    \item \textbf{Fontes de Dados \& Artefatos:} Identifica formalmente a origem dos insumos consumidos, distinguindo coleções brutas de catálogo, estruturas de dados pré-processadas e modelos serializados com seus respectivos metadados de avaliação.
+    \item \textbf{Cadeia de Processamento (Pipeline de Lógica):} Detalha o conjunto de transformações matemáticas e operações vetoriais executadas.
+    \item \textbf{Comportamento sob Limitações / Fallback:} Estipula como a aba reage em cenários de exceção, inicialização a frio (\textit{cold start}), ausência de parâmetros ou ausência de arquivos de suporte no ambiente.
+    \item \textbf{Diagrama de Fluxo:} Representação visual do fluxo de dados, detalhando as etapas de entrada, processamento e saída.
 \end{enumerate}
 
 % ==============================================================================
@@ -30,7 +30,7 @@ Para assegurar consistência metodológica, homogeneidade na documentação e fa
 % ==============================================================================
 \subsection{Etapa 3: Mapeamento dos Fluxos Atuais (Fases 1 e 2)}
 
-Apresenta-se a seguir a especificação técnica dos fluxos implementados no sistema principal (\texttt{app/dashboard.py}). 
+Apresenta-se a seguir a especificação técnica dos fluxos integrados na interface do painel interativo da aplicação. 
 
 \subsubsection{Organização da Navegação Reativa e Modos de Visita}
 
@@ -62,10 +62,10 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us1_mercado}.
     \item \textbf{Objetivo:} Apresentar os achados empíricos do mercado de trabalho e submeter a validação formal as 5 hipóteses estratégicas de negócio, fornecendo embasamento quantitativo antes de se propor qualquer recomendação algorítmica.
     \item \textbf{Fontes de Dados \& Artefatos:}
     \begin{itemize}
-        \item \texttt{data/raw/postings.csv}: Conjunto de dados primário contendo 123.849 anúncios de empregos;
-        \item \texttt{data/raw/companies/companies.csv}: Cadastro de dados cadastrais e porte corporativo das empresas contratantes.
+        \item \textbf{Catálogo Primário de Vagas:} Base bruta contendo 123.849 anúncios de empregos coletados publicamente;
+        \item \textbf{Base Cadastral de Empresas:} Dados complementares com porte corporativo e setor de atuação das empresas contratantes.
     \end{itemize}
-    \item \textbf{Cadeia de Processamento (\texttt{src/gerar\_figuras\_eda.py}):}
+    \item \textbf{Cadeia de Processamento (Pipeline de Análise Exploratória):}
     \begin{itemize}
         \item Higienização estatística, tratamento de registros incompletos e imputação de valores nulos;
         \item Agregação das taxas de conversão de mercado (\textit{Click-Through Rate} -- CTR), calculadas como a razão entre candidaturas registradas e visualizações de página:
@@ -96,10 +96,10 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us1_mercado}.
     arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!75}
 ]
 
-\node[databox] (raw_p) {\textbf{data/raw/postings.csv}\\(123.849 vagas)};
-\node[databox, below=5mm of raw_p] (raw_c) {\textbf{data/raw/companies.csv}\\(segmentação empresarial)};
+\node[databox] (raw_p) {\textbf{Catálogo Primário}\\\textbf{de Vagas}\\(123.849 registros)};
+\node[databox, below=5mm of raw_p] (raw_c) {\textbf{Base Cadastral}\\\textbf{de Empresas}\\(segmentação corporativa)};
 
-\node[procbox, right=3.2cm of $(raw_p)!0.5!(raw_c)$] (proc) {\textbf{Tratamento \& Limpeza}\\(\texttt{src/gerar\_figuras\_eda.py})\\Imputação e remoção de outliers};
+\node[procbox, right=3.2cm of $(raw_p)!0.5!(raw_c)$] (proc) {\textbf{Tratamento \& Limpeza}\\Pipeline de EDA\\Imputação e remoção de outliers};
 
 \node[calcbox, right=1.4cm of proc] (calc) {\textbf{Cálculo de Indicadores}\\CTR, Faixa Salarial,\\Modalidade Remota vs. Presencial};
 
@@ -128,8 +128,8 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us2_cold_star
     \item \textbf{Objetivo:} Permitir que o candidato construa em tempo real o seu perfil profissional sob demanda, declarando competências técnicas pontuais ou interagindo com vagas de interesse, eliminando a dependência de um histórico prévio de candidaturas.
     \item \textbf{Fontes de Dados \& Artefatos:}
     \begin{itemize}
-        \item \texttt{data/raw/postings.csv}: Amostra representativa cacheada de 25.000 anúncios de vagas;
-        \item \texttt{src/recomendador.py}: Módulo computacional com a classe central \texttt{RecSysCBF}.
+        \item \textbf{Catálogo Amostrado de Vagas:} Amostra representativa pré-processada contendo 25.000 anúncios de vagas;
+        \item \textbf{Motor Algorítmico de Conteúdo:} Componente computacional responsável pela vetorização semântica e cálculo de similaridade vetorial.
     \end{itemize}
     \item \textbf{Cadeia de Processamento (Pipeline de Lógica):}
     Construção do identificador textual composto ponderado (título com peso dobrado $+$ competências $+$ senioridade), vetorização esparsa via TF-IDF (catálogo com 3.000 termos), síntese aditiva contínua do vetor de perfil do usuário $\mathbf{u}$ e mensuração por similaridade de cosseno combinada ao bônus empírico de CTR. O detalhamento analítico e as deduções matemáticas formais encontram-se na Seção~\ref{sec:fase1_cbf}.
@@ -152,18 +152,18 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us2_cold_star
 
 % Linha Superior: Usuário -> Perfil -> Similaridade
 \node[uibox] (ui_in) {\textbf{Usuário na Interface}\\Digita Skills ($\gamma$)\\Seleciona Likes ($\alpha$) / Dislikes ($\beta$)};
-\node[procbox, right=1.6cm of ui_in] (build_prof) {\textbf{RecSysCBF.build\_user\_profile}\\(\texttt{src/recomendador.py})\\Vetor do Usuário $\mathbf{u} \in \mathbb{R}^{3000}$};
+\node[procbox, right=1.6cm of ui_in] (build_prof) {\textbf{Vetorização de Perfil}\\\textbf{(Motor CBF)}\\Vetor do Usuário $\mathbf{u} \in \mathbb{R}^{3000}$};
 \node[procbox, right=1.6cm of build_prof] (cos_sim) {\textbf{Similaridade do Cosseno}\\$\cos(\mathbf{u}, \mathbf{d}_j) = \frac{\mathbf{u} \cdot \mathbf{d}_j}{\|\mathbf{u}\| \|\mathbf{d}_j\|}$};
 
 % Matriz TF-IDF acima da Similaridade
-\node[databox, above=1.0cm of cos_sim] (tfidf) {\textbf{Matriz TF-IDF Cacheada}\\(3.000 termos no \texttt{postings.csv})};
+\node[databox, above=1.0cm of cos_sim] (tfidf) {\textbf{Matriz TF-IDF Cacheada}\\(3.000 termos ponderados)};
 
 % Linha Intermediária: Score Final e Bônus CTR à direita
 \node[procbox, below=1.2cm of cos_sim] (score_fin) {\textbf{Score Final \& Filtros}\\$\text{Score} = \cos + \alpha_{\text{CTR}}\cdot\text{CTR}$\\Corte Top-$N$ \& Filtro Remoto};
 \node[databox, right=1.2cm of score_fin, fill=yellow!10] (ctr_bonus) {\textbf{Bônus Empírico CTR}\\$+ \alpha_{\text{CTR}} \cdot \text{CTR}_j$};
 
 % Linha Inferior: Feed e Session State alinhados
-\node[feedbox, below=2.4cm of build_prof] (feed) {\textbf{Feed de \texttt{card\_vaga}}\\Aderência semântica (\% match),\\Termos que casam, Feedback};
+\node[feedbox, below=2.4cm of build_prof] (feed) {\textbf{Feed de Recomendações}\\Aderência semântica (\% match),\\Termos que casam, Feedback};
 \node[statebox, left=2.0cm of feed] (state) {\textbf{session\_state}\\Listas de curtidas\\e descartadas};
 
 % Conexões principais
@@ -176,7 +176,7 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us2_cold_star
 
 % Loop de feedback interativo
 \draw[farrow] (feed.west) -- node[above, font=\scriptsize] {Feedback Likes / Dislikes} (state.east);
-\draw[farrow] (state.north) -- node[left, font=\scriptsize, align=center] {Re-ranqueia\\(\texttt{\_rerun\_feed()})} (ui_in.south);
+\draw[farrow] (state.north) -- node[left, font=\scriptsize, align=center] {Re-ranqueamento\\dinâmico} (ui_in.south);
 
 \end{tikzpicture}%
 }
@@ -196,9 +196,9 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us_fase2}.
     \item \textbf{Objetivo:} Inspecionar o perfil latente implícito inferido a partir do comportamento do candidato e gerar recomendações de vagas baseadas no histórico coletivo de profissionais análogos, assegurando explicabilidade aditiva transparente.
     \item \textbf{Fontes de Dados \& Artefatos:}
     \begin{itemize}
-        \item \texttt{modelo\_svd.pkl}: Modelo de Decomposição em Valores Singulares treinado e serializado;
-        \item \texttt{data/processed/catalogo\_cf.csv}: Catálogo cacheado com 6.000 vagas;
-        \item \texttt{data/processed/interacoes.parquet}: Matriz esparsa contendo 602.216 notas (escala de 1 a 5) atribuídas por 5.000 personas sintéticas estruturadas.
+        \item \textbf{Modelo SVD Treinado:} Artefato serializado contendo os fatores latentes de usuários e itens e os parâmetros de viés ajustados;
+        \item \textbf{Catálogo Otimizado para CF:} Amostra representativa com 6.000 vagas pré-filtradas;
+        \item \textbf{Matriz de Interações Sintéticas:} Estrutura esparsa contendo 602.216 avaliações explícitas (escala de 1 a 5) atribuídas por 5.000 personas estruturadas.
     \end{itemize}
     \item \textbf{Cadeia de Processamento (Pipeline de Lógica):}
     Recuperação do vetor de fatores latentes do usuário ($p_u \in \mathbb{R}^{20}$) e predição das notas estimadas via formulação aditiva clássica do SVD ($\hat{y}_{u,i} = \mu + b_u + b_i + q_i^T p_u$), seguida de ordenação decrescente Top-$N$ e decomposição interativa de explicabilidade (gráfico Waterfall Altair). O detalhamento analítico, os hiperparâmetros e a formulação matemática completa encontram-se na Seção~\ref{sec:fase2_cf}.
@@ -220,15 +220,15 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us_fase2}.
 
 \node[procbox, right=1.6cm of u_sel] (recup) {\textbf{Recuperação de Estado}\\Vetor latente $p_u \in \mathbb{R}^{20}$,\\Persona e Histórico de Treino};
 
-\node[databox, above=8mm of recup] (models) {\textbf{Modelo Treinado}\\(\texttt{modelo\_svd.pkl})};
+\node[databox, above=8mm of recup] (models) {\textbf{Modelo SVD Treinado}\\Fatores Latentes e Vieses};
 
-\node[databox, below=8mm of recup] (cat) {\textbf{Catálogo Cacheado}\\(\texttt{catalogo\_cf.csv} -- 6.000 vagas)};
+\node[databox, below=8mm of recup] (cat) {\textbf{Catálogo Otimizado}\\(6.000 vagas)};
 
 \node[procbox, right=1.6cm of recup] (svd_pred) {\textbf{Predição SVD}\\$\hat{y} = \mu + b_u + b_i + q_i^T p_u$\\Ranking por Escore Bruto};
 
 \node[feedbox, right=1.6cm of svd_pred] (waterfall) {\textbf{Waterfall Altair}\\$\mu \to +b_u \to +b_i \to +\text{match} \to =\hat{y}$\\Explicabilidade do Componente Dominante};
 
-\node[feedbox, below=1.0cm of waterfall] (feed_cf) {\textbf{Feed Top-$N$ (\texttt{card\_vaga})}\\Exclui avaliadas, nota em destaque,\\Simulação didática de Curtir/Descartar};
+\node[feedbox, below=1.0cm of waterfall] (feed_cf) {\textbf{Feed Top-$N$ de Vagas}\\Exclui avaliadas, nota em destaque,\\Simulação didática de Curtir/Descartar};
 
 \draw[arrow] (u_sel.east) -- (recup.west);
 \draw[arrow] (models.south) -- (recup.north);
@@ -255,9 +255,9 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador
     \item \textbf{Objetivo:} Estabelecer uma comparação analítica, teórica e metrológica rigorosa entre as abordagens de Filtragem Baseada em Conteúdo e Filtragem Colaborativa, fundamentando decisões de arquitetura de software sob evidências empíricas.
     \item \textbf{Fontes de Dados \& Artefatos:}
     \begin{itemize}
-        \item \texttt{data/processed/metadados\_cf.pkl}: Dicionário gerado pelo script oficial de benchmarking (\texttt{src/executar\_modelagem.py}), integrando as métricas de SVD, KNN Cosseno, baselines triviais, piso do oráculo e p-valor do teste de Wilcoxon;
-        \item \texttt{data/processed/metadados\_cbf.pkl}: Metadados de avaliação do CBF sob idêntico protocolo experimental, gerados por \texttt{src/avaliar\_cbf.py};
-        \item Carga e unificação gerenciadas pela função centralizadora \texttt{carregar\_metricas()}.
+        \item \textbf{Métricas e Benchmarks de CF:} Estrutura serializada gerada pelo pipeline de modelagem e benchmarking, consolidando os resultados de SVD, KNN, baselines triviais, piso do oráculo e p-valor do teste de Wilcoxon;
+        \item \textbf{Métricas de Avaliação do CBF:} Estrutura serializada com as avaliações de Precision@10 e NDCG@10 do modelo baseado em conteúdo sob protocolo experimental equivalente;
+        \item \textbf{Módulo de Consolidação de Métricas:} Rotina responsável por unificar os resultados e tratar eventuais dados ausentes de forma defensiva.
     \end{itemize}
     \item \textbf{Cadeia de Processamento (Pipeline de Lógica):}
     \begin{itemize}
@@ -276,7 +276,7 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador
         \item Registro transparente da data e horário de geração dos artefatos (\textit{proveniência de dados});
         \item Confrontação conceitual multidimensional (\textit{Sinal Primário}, \textit{Perfil do Usuário}, \textit{Vulnerabilidade a Cold Start}, \textit{Potencial de Serendipidade} e \textit{Explicabilidade}).
     \end{itemize}
-    \item \textbf{Comportamento sob Limitações / Fallback:} Se o artefato \texttt{metadados\_cbf.pkl} não for localizado em disco, a renderização da tabela adota tratamento defensivo através de \texttt{.get()}, exibindo o marcador textual ``---'' nas linhas de conteúdo sem interromper o funcionamento ou causar falhas na página.
+    \item \textbf{Comportamento sob Limitações / Fallback:} Se os metadados de avaliação do CBF não forem localizados no ambiente de execução, a renderização da tabela adota tratamento defensivo, exibindo o marcador textual ``---'' nas linhas correspondentes sem interromper o funcionamento ou causar falhas na página.
 \end{enumerate}
 
 \begin{figure}[H]
@@ -290,12 +290,12 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador
     arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=black!75}
 ]
 
-\node[databox] (mcf) {\textbf{executar\_modelagem.py}\\$\to$ \texttt{metadados\_cf.pkl}\\(SVD, KNN, Baselines, Oráculo)};
-\node[databox, below=8mm of mcf] (mcbf) {\textbf{avaliar\_cbf.py}\\$\to$ \texttt{metadados\_cbf.pkl}\\(usa \texttt{protocolo\_ranking.pkl})};
+\node[databox] (mcf) {\textbf{Pipeline CF}\\\textbf{(SVD / KNN)}\\Baselines, Oráculo e Teste Wilcoxon};
+\node[databox, below=8mm of mcf] (mcbf) {\textbf{Pipeline CBF}\\Métricas de Ranking\\(P@10 e NDCG@10)};
 
 % Ponto médio seguro na borda direita das caixas de entrada
 \path (mcf.east) -- (mcbf.east) coordinate[midway] (east_mid);
-\node[procbox, anchor=west, right=1.6cm of east_mid] (merge) {\textbf{carregar\_metricas()}\\Unificação e tratamento defensivo\\Fallback automático com ``---''};
+\node[procbox, anchor=west, right=1.6cm of east_mid] (merge) {\textbf{Consolidação de Métricas}\\Unificação e tratamento defensivo\\Fallback automático com ``---''};
 
 \node[outbox, right=1.6cm of merge] (duelo) {\textbf{Duelo dos Modelos (UI)}\\Tabela 8 linhas, Wilcoxon,\\Proveniência \& Matriz Conceitual};
 
@@ -321,16 +321,16 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador
     \item \textbf{Objetivo:} Expor a metodologia, o processo de validação e as fragilidades do sistema explicitamente na interface visual, a fim de superar a ocultação da tomada de decisão e limitações em arquivos de texto auxiliares.
     \item \textbf{Fontes de Dados \& Artefatos:}
     \begin{itemize}
-        \item Metadados de timestamp de modificação (\textit{mtime}) dos artefatos em \texttt{data/processed/};
-        \item Chaves serializadas em \texttt{metadados\_cf.pkl} e \texttt{metadados\_cbf.pkl} (\texttt{rmse\_oraculo}, \texttt{p\_wilcoxon}, \texttt{precision\_k}, \texttt{ndcg\_k}).
+        \item Metadados de timestamp de compilação (\textit{mtime}) dos artefatos processados do sistema;
+        \item Dicionários de métricas consolidados contendo indicadores estatísticos (RMSE do oráculo, $p$-valor de Wilcoxon, Precision@10 e NDCG@10).
     \end{itemize}
     \item \textbf{Conteúdo Estruturado}
     \begin{itemize}
-        \item \textbf{Tabela de Proveniência de Artefatos:} Mapeamento inequívoco de cada artefato binário gerado, indicando o script responsável pela criação, a base de dados alimentadora e a data exata da compilação;
+        \item \textbf{Tabela de Proveniência de Artefatos:} Mapeamento inequívoco de cada artefato binário gerado, indicando o componente responsável pela criação, a base de dados alimentadora e a data exata da compilação;
         \item \textbf{Conformidade com a LGPD:} Fundamentação jurídica e técnica do uso de dados de interação sintéticos estruturados (Lei Federal nº 13.709/2018), resguardando a privacidade e a confidencialidade de profissionais reais do mercado;
         \item \textbf{Avaliação \textit{Self-Fulfilling}:} Reconhecimento epistêmico de que a geração do \textit{ground truth} mediante decomposição bilinear impõe uma circularidade favorável ao modelo SVD, exigindo a mensuração da proximidade com o oráculo para interpretação fidedigna;
         \item \textbf{Piso de Ruído Estocástico:} Comparativo entre o erro obtido pelo SVD ($0{,}625$) e o limite bayesiano do oráculo ($0{,}521$), atestando uma razão de apenas $1{,}20\times$ em relação ao limite estocástico ideal;
-        \item \textbf{Limitações Abertas:} Registro público de fragilidades do catálogo primário, incluindo a esparsidade do campo \texttt{skills\_desc} ($\approx 98\%$ de ausências), a degradação e falha do algoritmo KNN em matrizes ultrarralas e a dependência do motor híbrido para mitigação do \textit{cold start} na Fase 3.
+        \item \textbf{Limitações Abertas:} Registro público de fragilidades do catálogo primário, incluindo a esparsidade do atributo textual de competências ($\approx 98\%$ de ausências), a degradação e falha do algoritmo KNN em matrizes ultrarralas e a dependência do motor híbrido para mitigação do \textit{cold start} na Fase 3.
     \end{itemize}
     \item \textbf{Fallback e Tratamento Defensivo:} Cada bloco de conteúdo analítico é resguardado pela inspeção da presença das respectivas chaves no dicionário de metadados; na eventualidade de execução com arquivos de métricas legados, o componente omite os blocos não preenchidos sem degradar o restante da página.
 \end{enumerate}
