@@ -1,0 +1,40 @@
+% ==============================================================================
+% SEÇÃO 5: RISCOS DO PROJETO E GOVERNANÇA LGPD
+% Autor: Danilo Belém Oliveira (Issue #10)
+% 
+% REGRA DE OURO ANTI-REDUNDÂNCIA:
+% Focar estritamente na Matriz de Risco (Risco -> Impacto -> Mitigação Técnica) 
+% e na conformidade regulatória da LGPD. Não reexplicar os algoritmos do zero.
+% ==============================================================================
+
+\section{Riscos do Projeto e Governança LGPD}
+\label{sec:riscos_projeto}
+
+Este capítulo consolida a avaliação de riscos técnicos, algorítmicos e regulatórios do recomendador, demonstrando as estratégias de mitigação implementadas no código e o estrito cumprimento à legislação brasileira de proteção de dados.
+
+% ------------------------------------------------------------------------------
+% 5.1 MATRIZ DE RISCOS TÉCNICOS E MITIGAÇÕES
+% ------------------------------------------------------------------------------
+\subsection{Matriz de Riscos Técnicos e Mitigações}
+\label{sec:matriz_riscos}
+
+% [PLACEHOLDER - DANILO: Estruturar a tabela completa de riscos]
+% 1. Cold Start de Usuário e de Vaga (Mitigação: CBF imediata e Switching de Burke);
+% 2. Esparsidade Extrema (97,99%) (Mitigação: Fatores latentes SVD em 20D vs. colapso do KNN);
+% 3. Bolha de Filtro / Hiperespecialização (Mitigação: Serendipidade controlada da CF na Fase 3);
+% 4. Saturação de Afinidade e Empates no Top-N (Mitigação: Desempate por escore bruto - Decisão D7);
+% 5. Escassez Textual em Dados Públicos (Mitigação: Dobrar peso do título frente a 98% nulos em skills).
+\noindent\textit{[Espaço reservado para a Matriz de Riscos Técnicos por Danilo Belém -- Issue \#10. Foco na tabela estrutural de Risco $\times$ Impacto $\times$ Mitigação Técnica.]}
+
+% ------------------------------------------------------------------------------
+% 5.2 CONFORMIDADE COM A LGPD E GOVERNANÇA DE DADOS
+% ------------------------------------------------------------------------------
+\subsection{Conformidade com a LGPD e Ética em Dados}
+\label{sec:lgpd_governanca}
+
+% [PLACEHOLDER - DANILO: Redigir a conformidade legal com a Lei nº 13.709/2018]
+% - Uso exclusivo de dados corporativos públicos da Kaggle;
+% - Garantia de zero PII (Personally Identifiable Information) através da simulação estocástica (Dirichlet + Gaussiana);
+% - Princípio da Transparência: Explicabilidade textual em 1 linha e gráfico Waterfall Altair;
+% - Tela formal de transparência "Como avaliamos & limitações" com tabela de proveniência de artefatos.
+\noindent\textit{[Espaço reservado para a seção de Governança e LGPD por Danilo Belém -- Issue \#10. Foco na fundamentação jurídica e salvaguardas técnicas adotadas.]}

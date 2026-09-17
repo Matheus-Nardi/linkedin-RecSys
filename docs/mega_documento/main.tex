@@ -1,0 +1,106 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Pacotes Fundamentais ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\geometry{top=3cm, bottom=2cm, left=3cm, right=2cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath, amssymb}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{hyperref}
+
+% --- Pacotes Gráficos e Caixas (TikZ e tcolorbox) ---
+\usepackage{tikz}
+\usetikzlibrary{calc, positioning, shapes.geometric, arrows.meta, fit, backgrounds}
+\usepackage[skins]{tcolorbox}
+
+% --- Estilos Padronizados das Caixas ---
+\tcbset{
+    userstorybox/.style={
+        colback=blue!5!white,
+        colframe=blue!75!black,
+        fonttitle=\bfseries,
+        coltitle=white,
+        rounded corners,
+        boxrule=0.8pt
+    },
+    burkebox/.style={
+        colback=green!5!white,
+        colframe=green!50!black,
+        fonttitle=\bfseries,
+        coltitle=white,
+        rounded corners,
+        boxrule=0.8pt
+    }
+}
+
+\begin{document}
+
+% ==============================================================================
+% CAPA OFICIAL
+% ==============================================================================
+\begin{titlepage}
+    \centering
+    \vspace*{0.5cm}
+    {\large \textbf{UNIVERSIDADE ESTADUAL DO TOCANTINS -- UNITINS}}\\[0.3cm]
+    {\large CURSO DE SISTEMAS DE INFORMAÇÃO}\\[0.3cm]
+    {\large DISCIPLINA: TÓPICOS EM SISTEMAS DE RECOMENDAÇÃO}\\[3.0cm]
+
+    {\Large \textbf{SISTEMA DE RECOMENDAÇÃO DE VAGAS DE EMPREGO}}\\[0.4cm]
+    {\large \textbf{Engenharia de Dados, Modelagem Algorítmica (CBF, CF e Híbrido) e Governança TDSP sobre o Ecossistema LinkedIn}}\\[3.0cm]
+
+    \begin{flushright}
+        \textbf{Autores:}\\
+        Alêkson Castro\\
+        Danilo Belém Oliveira\\
+        Gustavo Oliveira da Silva\\
+        Italo Emannuel Beckman\\
+        Matheus Alexandre Nardi\\[0.4cm]
+        \textbf{Docente:} Profa. Ma. Tamirys Virgulino Ribeiro Prado
+    \end{flushright}
+
+    \vfill
+    {\large Palmas -- TO}\\
+    {\large 2026}
+\end{titlepage}
+
+% ==============================================================================
+% SUMÁRIO AUTOMÁTICO
+% ==============================================================================
+\tableofcontents
+\newpage
+
+% ==============================================================================
+% CAPÍTULOS MODULARES (A Progressão Lógica do Trabalho)
+% ==============================================================================
+
+% 1. Contexto, Dataset e Governança de Equipe (Gustavo - Issue #1)
+\input{01_introducao.tex}
+\newpage
+
+% 2. O Desenho do Software e Fluxos de Dados (Matheus - Issue #9)
+\input{02_arquitetura_alvo.tex}
+\newpage
+
+% 3. A Ciência e Modelagem Matemática dos Algoritmos (Gustavo, Alêkson, Italo, Danilo)
+\input{03_fases_do_projeto.tex}
+\newpage
+
+% 4. A Visão Ágil de Negócio e Testes de Aceitação BDD (Alêkson, Italo, Matheus - Issue #8)
+\input{04_user_stories.tex}
+\newpage
+
+% 5. Mapeamento de Fragilidades, Esparsidade e LGPD (Danilo - Issue #10)
+\input{05_riscos.tex}
+\newpage
+
+% 6. Prova Real e Homologação Final do Sistema (Danilo - Issue #10)
+\input{06_criterios_aceite.tex}
+
+\end{document}

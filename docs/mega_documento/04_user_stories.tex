@@ -1,0 +1,125 @@
+% ==============================================================================
+% SEÇÃO 4: USER STORIES DE ACORDO COM CADA FASE E RASTREABILIDADE
+% Autores: Alêkson (#4), Italo (#6), Matheus (#8)
+%
+% REGRA DE OURO ANTI-REDUNDÂNCIA:
+% Não reexplicar a matemática de ML nesta seção. O foco aqui é estritamente 
+% em personas, declarações ágeis de valor e cenários de teste BDD (Dado-Quando-Então).
+% ==============================================================================
+
+\section{User Stories de Acordo com Cada Fase}
+\label{sec:user_stories}
+
+Este capítulo formaliza a visão de produto e os requisitos de negócio sob a perspectiva ágil, estruturando as Histórias de Usuário vinculadas a cada fase evolutiva do sistema e estabelecendo os critérios de aceitação em formato BDD (\textit{Behavior-Driven Development}).
+
+% ------------------------------------------------------------------------------
+% 4.1 FASE 1: VISÃO DE MERCADO
+% Autor: Alêkson Castro (Issue #4)
+% ------------------------------------------------------------------------------
+\subsection{User Story 1: Visão de Mercado (Fase 1)}
+\label{sec:us1_mercado}
+
+% [PLACEHOLDER - ALÊKSON: Redigir a US1 em padrão BDD sintético]
+% - Candidato explorando mercado: declaração oficial e cenários BDD de modalidades e salários;
+% - Referenciar a Seção 2 (\ref{fig:fluxo_aba1}) para detalhes de tela.
+\noindent\textit{[Espaço reservado para a User Story 1 por Alêkson Castro -- Issue \#4. Foco na declaração de valor ágil e nos cenários BDD da visão de mercado.]}
+
+% ------------------------------------------------------------------------------
+% 4.2 FASE 1: CBF E COLD START
+% Autor: Alêkson Castro (Issue #4)
+% ------------------------------------------------------------------------------
+\subsection{User Story 2: Filtragem por Conteúdo e Cold Start (Fase 1)}
+\label{sec:us2_cold_start}
+
+% [PLACEHOLDER - ALÊKSON: Redigir a US2 em padrão BDD sintético]
+% - Candidato sem histórico: declaração oficial e cenários BDD de busca por skills e scoped rerun;
+% - Referenciar a Seção 2 (\ref{fig:fluxo_aba2}) para detalhes de tela.
+\noindent\textit{[Espaço reservado para a User Story 2 por Alêkson Castro -- Issue \#4. Foco no cold start e nos cenários BDD da busca por competências.]}
+
+% ------------------------------------------------------------------------------
+% 4.3 FASE 2: FILTRAGEM COLABORATIVA E EXPLICABILIDADE
+% Autor: Italo Emannuel Beckman (Issue #6)
+% ------------------------------------------------------------------------------
+\subsection{Fase 2: Filtragem Colaborativa e Explicabilidade (US3 e US4)}
+\label{sec:us_fase2}
+
+% [PLACEHOLDER - ITALO: Redigir US3 e US4 em padrão BDD sintético]
+% - US3 (Recrutador / Perfil latente): Declaração oficial + Cenários BDD de persona e catálogo sem repetição;
+% - US4 (Explicabilidade / Waterfall): Declaração oficial + Cenários BDD do gráfico Waterfall Altair;
+% - Referenciar a Seção 2 (\ref{fig:fluxo_aba3}) para detalhes de tela.
+\noindent\textit{[Espaço reservado para as User Stories 3 e 4 por Italo Beckman -- Issue \#6. Foco na transparência da IA e cenários BDD da CF.]}
+
+% ==============================================================================
+% 4.4 USER STORY - FASE 3 (O AVALIADOR DO PROJETO)
+% Autor: Matheus Alexandre Nardi (Issue #8)
+% Finalidade: Formalização da US5 no padrão BDD e consolidação da Matriz Geral
+% ==============================================================================
+
+\subsection{Fase 3: O Avaliador do Projeto (US5)}
+\label{sec:us5_avaliador}
+
+Enquanto as histórias anteriores abordam a experiência operacional do candidato e da plataforma de recrutamento, a quinta História de Usuário atende à perspectiva do \textbf{Avaliador do Projeto} (representado pela Professora da disciplina e pela banca examinadora). Sob a ótica do TDSP (\textit{Team Data Science Process}), o papel do avaliador técnico consiste em auditar o rigor estatístico das métricas reportadas, inspecionar a conformidade metodológica e julgar se a complexidade de engenharia da arquitetura híbrida se justifica frente a modelos puros e pisos teóricos de ruído.
+
+\begin{tcolorbox}[colback=blue!5!white, colframe=blue!75!black, title={\textbf{User Story 5 (Obrigatória pelo Roteiro da Disciplina)}}]
+\textit{``Como avaliador do projeto, quero comparar as três técnicas lado a lado com métricas reais e inspecionar a metodologia de testes, para julgar se a complexidade da hibridização se justificou perante baselines e pisos teóricos.''}
+\vspace{0.15cm}
+\tcblower
+\textbf{Persona:} Professora da Disciplina / Avaliador Técnico de Sistemas de Recomendação.\\
+\textbf{Dor Central de Negócio:} Vulnerabilidade a modelos que funcionam como ``caixas-pretas'', relatórios sem significância estatística comprovada ou soluções superengenheiradas cujos ganhos preditivos não compensam o custo operacional em produção.
+\end{tcolorbox}
+
+\subsubsection{Critérios de Aceite Formais (Padrão BDD)}
+
+A homologação da US5 é delimitada por 3 cenários operacionais no padrão BDD (\textit{Behavior-Driven Development}):
+
+\paragraph{Cenário 1: Auditoria do Duelo de Modelos e Piso Irredutível de Ruído.}
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+    \item \textbf{Dado que} o avaliador acessa o \textit{Modo Avaliador $\to$ Duelo dos Modelos} no painel interativo (\texttt{app/dashboard.py});
+    \item \textbf{Quando} inspeciona o quadro comparativo consolidado pelas 8 abordagens técnicas (chutes triviais, baseline de popularidade, oráculo, CBF quantitativa, KNN e SVD);
+    \item \textbf{Então} o sistema deve comprovar empiricamente a superioridade do modelo SVD ($\text{RMSE} = 0{,}625$ e $\text{Precision@10} = 1{,}000$) contra o KNN ($\text{RMSE} = 1{,}263$ e $\text{Precision@10} = 0{,}874$) com significância atestada pelo teste de Wilcoxon ($p < 0{,}05$), evidenciando que o erro do SVD situa-se a apenas $1{,}20\times$ do piso teórico bayesiano do oráculo ($\text{RMSE}_{\text{oráculo}} = 0{,}5214$).
+    \item \textit{Rastreabilidade Arquitetural:} Fluxo 4 da Arquitetura Alvo (\ref{fig:fluxo_aba4}).
+\end{itemize}
+
+\paragraph{Cenário 2: Transparência Metodológica, LGPD e Proveniência de Dados.}
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+    \item \textbf{Dado que} o avaliador acessa a página \textit{Como avaliamos \& limitações} (Fluxo 5);
+    \item \textbf{Quando} consulta o painel de governança e integridade de artefatos;
+    \item \textbf{Então} o sistema deve discriminar a data/hora e o script exato gerador de cada artefato serializado (\texttt{metadados\_cf.pkl} e \texttt{metadados\_cbf.pkl}), comprovar a conformidade com a LGPD pelo uso de dados corporativos públicos e personas sintéticas sem qualquer PII, e declarar explicitamente a natureza \textit{self-fulfilling} da avaliação bilinear e as limitações de cobertura textual do catálogo.
+\end{itemize}
+
+\paragraph{Cenário 3: Julgamento Técnico da Necessidade de Hibridização.}
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+    \item \textbf{Dado que} o avaliador examina os trade-offs inerentes às abordagens isoladas (a hiperespecialização semântica da CBF versus o colapso por \textit{cold start} na CF);
+    \item \textbf{Quando} confronta a arquitetura alvo da Fase 3 com as alternativas puras;
+    \item \textbf{Então} o sistema deve evidenciar que a conjugação de chaveamento dinâmico (\textit{Switching} para $N_{\text{interações}} < 5$) com fusão ponderada ($0{,}4\,\text{CBF} + 0{,}6\,\text{CF}$) sobre escore contínuo bruto é a única estratégia capaz de assegurar cobertura imediata a novos usuários e serendipidade comportamental a candidatos ativos.
+    \item \textit{Rastreabilidade Arquitetural:} Fluxo Híbrido da Fase 3 (\ref{fig:fluxo_hibrido_fase3}).
+\end{itemize}
+
+% ==============================================================================
+% 4.5 MATRIZ GERAL DE RASTREABILIDADE
+% ==============================================================================
+\subsection{Matriz Geral de Rastreabilidade do Sistema}
+\label{sec:matriz_rastreabilidade}
+
+Para assegurar o fechamento metodológico do TDSP e conectar formalmente o valor de negócio à engenharia de software desenvolvida, a Tabela~\ref{tab:matriz_rastreabilidade} sintetiza o encadeamento integral entre as 5 Histórias de Usuário, as personas centrais, os módulos de código em \texttt{src/}, os modos de navegação do dashboard e as métricas de validação empírica.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.25}
+\caption{Matriz Geral de Rastreabilidade: Conexão entre User Stories, Personas, Módulos e Validação.}
+\label{tab:matriz_rastreabilidade}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llllll@{}}
+\toprule
+\textbf{User Story} & \textbf{Persona Central} & \textbf{Fase} & \textbf{Modo no Dashboard} & \textbf{Módulo de Código} & \textbf{Métrica de Validação} \\ \midrule
+\textbf{US 1 (Mercado)} & Candidato em Recolocação & 1 & Modo Candidato $\to$ EDA (Tabs H1--H5) & \texttt{src/gerar\_figuras\_eda.py} & Medianas Salariais e Salto de CTR \\
+\textbf{US 2 (Cold Start)} & Candidato sem Histórico & 1 & Modo Candidato $\to$ Simulador CBF & \texttt{src/recomendador.py} & Cosseno $\ge 0{,}50$ e Re-ranking Scoped \\
+\textbf{US 3 (Perfil Latente)} & Plataforma / Recrutador & 2 & Modo Candidato $\to$ Feed CF (SVD) & \texttt{src/filtragem\_colaborativa.py} & Precision@10 ($1{,}000$) e Escore Bruto \\
+\textbf{US 4 (Explicabilidade)} & Candidato com Histórico & 2 & Modo Candidato $\to$ Waterfall Altair & \texttt{src/filtragem\_colaborativa.py} & Decomposição Aditiva $\mu + b_u + b_i + q_i^T p_u$ \\
+\textbf{US 5 (Avaliador)} & Professora / Avaliador & 3 & Modo Avaliador $\to$ Duelo e Limitações & \texttt{src/executar\_modelagem.py} & Wilcoxon ($p < 0{,}05$), Oráculo e P@10 CBF \\ \bottomrule
+\end{tabular}%
+}
+\end{table}
+
+A matriz evidencia que cada tela da aplicação atende a uma dor concreta de negócio mapeada desde a concepção do produto, fornecendo um roteiro verificável para a homologação dos critérios de aceite detalhados na Seção~6.

@@ -1,0 +1,130 @@
+% ==============================================================================
+% SEÇÃO 3: FASES DO PROJETO (MODELAGEM E EXPERIMENTOS)
+% Autores: Gustavo (#2), Alêkson (#3), Italo (#5), Danilo (#7)
+% 
+% REGRA DE OURO ANTI-REDUNDÂNCIA:
+% Não descrever telas ou botões do Streamlit nesta seção (a interface já está 
+% mapeada na Seção 2). Focar estritamente em formulação matemática, engenharia 
+% de atributos e resultados empíricos.
+% ==============================================================================
+
+\section{Fases do Projeto: Modelagem e Experimentos}
+\label{sec:fases_do_projeto}
+
+Este capítulo detalha a fundamentação teórica, a modelagem matemática e os experimentos computacionais conduzidos ao longo das três fases do ciclo de desenvolvimento do recomendador.
+
+% ------------------------------------------------------------------------------
+% 3.1 FASE 1: EDA E AS 5 HIPÓTESES DE MERCADO
+% Autor: Gustavo Oliveira da Silva (Issue #2)
+% ------------------------------------------------------------------------------
+\subsection{Fase 1.1: Análise Exploratória de Dados (EDA) e Hipóteses de Mercado}
+\label{sec:fase1_eda}
+
+% [PLACEHOLDER - GUSTAVO: Inserir a análise das 5 hipóteses mercadológicas]
+% - Contextualização do dataset Kaggle (123.849 vagas);
+% - H1 a H5 com gráficos de distribuição salarial e taxas de conversão (CTR);
+% - Apresentação das 3 confirmadas e 2 refutadas com prudência epistêmica;
+% - Justificativa de uso do CTR como bônus de engajamento no recomendador.
+\noindent\textit{[Espaço reservado para a redação da Seção 3.1 por Gustavo Oliveira -- Issue \#2. Foco nos achados estatísticos e gráficos das 5 hipóteses.]}
+
+% ------------------------------------------------------------------------------
+% 3.2 FASE 1: FILTRAGEM BASEADA EM CONTEÚDO (CBF)
+% Autor: Alêkson Castro (Issue #3)
+% ------------------------------------------------------------------------------
+\subsection{Fase 1.2: Filtragem Baseada em Conteúdo (CBF)}
+\label{sec:fase1_cbf}
+
+% [PLACEHOLDER - ALÊKSON: Inserir a engenharia semântica da CBF]
+% - Identificador textual composto: Texto = (Título x 2) + Skills + Senioridade;
+% - Matriz TF-IDF com 3.000 termos e vetor do perfil do usuário;
+% - Cálculo formal da similaridade do cosseno;
+% - Avaliação quantitativa da CBF sem bônus (Precision@10 = 0,882 e NDCG@10 = 0,750).
+\noindent\textit{[Espaço reservado para a redação da Seção 3.2 por Alêkson Castro -- Issue \#3. Foco na formulação do TF-IDF, cosseno e avaliação quantitativa offline.]}
+
+\paragraph{Formulação Matemática e Engenharia de Atributos (Conteúdo-Semente):}
+O pipeline analítico da filtragem por conteúdo apoia-se em quatro formulações centrais:
+
+\begin{enumerate}[label=\alph*)]
+    \item \textbf{Construção do Identificador Textual Composto:} O documento representativo de cada vaga é construído com peso dobrado atribuído ao título da posição:
+    \begin{equation}
+        \text{Texto}_j = (\text{Título}_j \times 2) \oplus \text{Skills}_j \oplus \text{Senioridade}_j
+    \end{equation}
+    \item \textbf{Vetorização Esparsa via TF-IDF:} Mapeamento do catálogo em matriz esparsa contendo os 3.000 termos de maior frequência inversa no documento.
+    \item \textbf{Composição Dinâmica do Vetor do Perfil ($\mathbf{u}$):} Síntese aditiva a partir das seleções positivas ($\alpha$), seleções negativas ($\beta$) e inserções em texto livre ($\gamma$):
+    \begin{equation}
+        \mathbf{u} = \alpha \cdot \mathbf{v}_{\text{positivas}} - \beta \cdot \mathbf{v}_{\text{negativas}} + \gamma \cdot \mathbf{v}_{\text{texto}}
+    \end{equation}
+    \item \textbf{Similaridade do Cosseno:} Mensuração do alinhamento semântico vetorial entre o perfil sintetizado $\mathbf{u}$ e cada vaga $\mathbf{d}_j$:
+    \begin{equation}
+        \cos(\mathbf{u}, \mathbf{d}_j) = \frac{\mathbf{u} \cdot \mathbf{d}_j}{\|\mathbf{u}\| \|\mathbf{d}_j\|}
+    \end{equation}
+    \item \textbf{Desempate via Bônus Empírico de Atratividade (CTR):} Incorporação do CTR mediano obtido na Fase 1.1 para priorizar posições com apelo comprovado de mercado:
+    \begin{equation}
+        \text{Score Final}_j = \cos(\mathbf{u}, \mathbf{d}_j) + \alpha_{\text{CTR}} \cdot \text{CTR}_j
+    \end{equation}
+\end{enumerate}
+
+% ------------------------------------------------------------------------------
+% 3.3 FASE 2: FILTRAGEM COLABORATIVA (SVD VS. KNN)
+% Autor: Italo Emannuel Beckman (Issue #5)
+% ------------------------------------------------------------------------------
+\subsection{Fase 2: Filtragem Colaborativa (Fatores Latentes SVD vs. KNN)}
+\label{sec:fase2_cf}
+
+% [PLACEHOLDER - ITALO: Inserir o confronto algorítmico e auditoria]
+% - Matriz esparsa de 602k ratings sintéticos (5.000 personas x 6.000 vagas);
+% - Formulação matemática aditiva do SVD (k=20) vs. KNN centrado;
+% - Auditoria de métricas: RMSE SVD (0,625) vs. KNN (1,263);
+% - Proximidade de 1,20x em relação ao piso do oráculo (0,5214);
+% - Teste pareado de Wilcoxon com p ≈ 0 comprovando significância estatística.
+\noindent\textit{[Espaço reservado para a redação da Seção 3.3 por Italo Beckman -- Issue \#5. Foco na fatoração SVD, decomposição de viés e significância estatística.]}
+
+\paragraph{Formulação Matemática do Modelo Latente SVD (Conteúdo-Semente):}
+A predição das notas estimadas para pares usuário-item $(u, i)$ não observados é computada por meio da formulação aditiva clássica de Decomposição em Valores Singulares com regularização:
+
+\begin{equation}
+    \hat{y}_{u,i} = \mu + b_u + b_i + q_i^T p_u
+\end{equation}
+onde:
+\begin{itemize}
+    \item $\mu = 3{,}230$: média global das avaliações observadas na partição de treino;
+    \item $b_u \in \mathbb{R}$: viés característico do candidato $u$ (tendência sistemática de rigor ou benevolência nas notas);
+    \item $b_i \in \mathbb{R}$: viés intrínseco da vaga $i$ (popularidade ou atratividade geral frente a todo o catálogo);
+    \item $q_i^T p_u$: produto interno dos vetores de fatores latentes em dimensão reduzida ($k=20$), capturando a sinergia e casamento de afinidade entre candidato e anúncio.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+% 3.4 FASE 3: FILTRAGEM HÍBRIDA DE ROBIN BURKE
+% Autor: Danilo Belém Oliveira (Issue #7)
+% ------------------------------------------------------------------------------
+\subsection{Fase 3: Filtragem Híbrida (Taxonomia de Robin Burke)}
+\label{sec:fase3_hibrido}
+
+% [PLACEHOLDER - DANILO: Inserir a convergência híbrida e trade-offs]
+% - Fundamentação na taxonomia clássica de Robin Burke (2002);
+% - Equação da fusão ponderada linear (0,4 CBF + 0,6 CF) sobre escore bruto normalizado;
+% - Política de chaveamento dinâmico (Switching) para cold start (N < 5);
+% - Equilíbrio entre cobertura textual imediata e serendipidade comportamental coletiva.
+\noindent\textit{[Espaço reservado para a redação da Seção 3.4 por Danilo Belém -- Issue \#7. Foco nas equações de normalização min-max contínua e regras de chaveamento.]}
+
+\paragraph{Concepção Matemática da Hibridização (Conteúdo-Semente):}
+Para neutralizar a propensão à hipersensibilidade do CBF e a vulnerabilidade ao \textit{cold start} do CF, adota-se a conjugação formal de duas técnicas da taxonomia de Robin Burke~\cite{burke2002}:
+
+\begin{tcolorbox}[burkebox, title={Concepção Matemática da Filtragem Híbrida}]
+\textbf{1. Estratégia Ponderada (\textit{Weighted}):}
+\begin{equation}
+    \text{Score Híbrido}_{u,j} = w_1 \cdot \text{Score}_{\text{CBF}}^{\text{norm}}(u, j) + w_2 \cdot \text{Score}_{\text{CF}}^{\text{norm}}(u, j)
+\end{equation}
+onde os escores semântico e colaborativo são normalizados para o intervalo comum $[0, 1]$ e submetidos à calibração paramétrica ponderada (e.g., $w_1 = 0{,}40$ para relevância de competências e $w_2 = 0{,}60$ para atratividade comportamental coletiva).
+
+\vspace{0.25cm}
+\textbf{2. Estratégia de Chaveamento para Cold Start (\textit{Switching}):}
+\begin{equation}
+    \text{Regime de Operação}(u) = 
+    \begin{cases} 
+        \text{CBF (Conteúdo Exclusivo)}, & \text{se } |I_u| = 0 \text{ (Usuário Novo)}, \\
+        \text{Fusão Ponderada (CBF} + \text{CF)}, & \text{se } |I_u| \ge 1 \text{ (Usuário Ativo)},
+    \end{cases}
+\end{equation}
+onde $|I_u|$ quantifica o total de interações históricas acumuladas pelo usuário $u$.
+\end{tcolorbox}

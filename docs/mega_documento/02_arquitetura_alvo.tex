@@ -1,4 +1,5 @@
 \section{Arquitetura Alvo e Fluxo por Aba do Sistema}
+\label{sec:arquitetura_alvo}
 
 % ==============================================================================
 % 1. ETAPA 1: O QUE É O FLUXO POR ABA NA ARQUITETURA ALVO
@@ -54,9 +55,8 @@ O fluxo de abas atual tem por objetivo atender perfis e níveis de profundidade 
 % ------------------------------------------------------------------------------
 \subsubsection{Aba 1: Visão de Negócio (EDA de Mercado)}
 
-\begin{tcolorbox}[userstorybox, title={User Story Vinculada (Aba 1)}]
-\textit{``Como candidato, quero ver estatísticas do mercado de vagas, para entender o contexto antes de buscar recomendações.''} (\textbf{Persona:} Candidato).
-\end{tcolorbox}
+\noindent\textbf{User Story Vinculada:} US1 -- Visão de Mercado (\textit{Persona: Candidato}).
+Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us1_mercado}.
 
 \begin{enumerate}[label=\textbf{\arabic*.}]
     \item \textbf{Objetivo:} Apresentar os achados empíricos do mercado de trabalho e submeter a validação formal as 5 hipóteses estratégicas de negócio, fornecendo embasamento quantitativo antes de se propor qualquer recomendação algorítmica.
@@ -121,9 +121,8 @@ O fluxo de abas atual tem por objetivo atender perfis e níveis de profundidade 
 % ------------------------------------------------------------------------------
 \subsubsection{Aba 2: Simulador CBF (Filtragem Baseada em Conteúdo)}
 
-\begin{tcolorbox}[userstorybox, title={User Story Vinculada (Aba 2)}]
-\textit{``Como candidato sem histórico ou em transição, quero buscar vagas por palavras-chave e habilidades pontuais, para obter recomendações semanticamente aderentes sem depender de dados prévios.''} (\textbf{Persona:} Candidato).
-\end{tcolorbox}
+\noindent\textbf{User Story Vinculada:} US2 -- Filtragem por Conteúdo e Cold Start (\textit{Persona: Candidato}).
+Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us2_cold_start}.
 
 \begin{enumerate}[label=\textbf{\arabic*.}]
     \item \textbf{Objetivo:} Permitir que o candidato construa em tempo real o seu perfil profissional sob demanda, declarando competências técnicas pontuais ou interagindo com vagas de interesse, eliminando a dependência de um histórico prévio de candidaturas.
@@ -133,25 +132,7 @@ O fluxo de abas atual tem por objetivo atender perfis e níveis de profundidade 
         \item \texttt{src/recomendador.py}: Módulo computacional com a classe central \texttt{RecSysCBF}.
     \end{itemize}
     \item \textbf{Cadeia de Processamento (Pipeline de Lógica):}
-    \begin{enumerate}[label=\alph*)]
-        \item \textbf{Construção do Identificador Textual Composto:} O documento representativo de cada vaga é construído com peso dobrado atribuído ao título da posição:
-        \begin{equation}
-            \text{Texto}_j = (\text{Título}_j \times 2) \oplus \text{Skills}_j \oplus \text{Senioridade}_j
-        \end{equation}
-        \item \textbf{Vetorização Esparsa via TF-IDF:} Mapeamento do catálogo em matriz esparsa pré-treinada contendo os 3.000 termos de maior frequência inversa no documento.
-        \item \textbf{Composição Dinâmica do Vetor do Perfil ($\mathbf{u}$):} Síntese aditiva a partir das seleções positivas ($\alpha$), seleções negativas ($\beta$) e inserções em texto livre ($\gamma$):
-        \begin{equation}
-            \mathbf{u} = \alpha \cdot \mathbf{v}_{\text{positivas}} - \beta \cdot \mathbf{v}_{\text{negativas}} + \gamma \cdot \mathbf{v}_{\text{texto}}
-        \end{equation}
-        \item \textbf{Similaridade do Cosseno:} Mensuração do alinhamento semântico vetorial entre o perfil sintetizado $\mathbf{u}$ e cada vaga $\mathbf{d}_j$:
-        \begin{equation}
-            \cos(\mathbf{u}, \mathbf{d}_j) = \frac{\mathbf{u} \cdot \mathbf{d}_j}{\|\mathbf{u}\| \|\mathbf{d}_j\|}
-        \end{equation}
-        \item \textbf{Desempate via Bônus Empírico de Atratividade (CTR):} Incorporação do CTR mediano obtido na Aba 1 para priorizar posições com apelo comprovado de mercado:
-        \begin{equation}
-            \text{Score Final}_j = \cos(\mathbf{u}, \mathbf{d}_j) + \alpha_{\text{CTR}} \cdot \text{CTR}_j
-        \end{equation}
-    \end{enumerate}
+    Construção do identificador textual composto ponderado (título com peso dobrado $+$ competências $+$ senioridade), vetorização esparsa via TF-IDF (catálogo com 3.000 termos), síntese aditiva contínua do vetor de perfil do usuário $\mathbf{u}$ e mensuração por similaridade de cosseno combinada ao bônus empírico de CTR. O detalhamento analítico e as deduções matemáticas formais encontram-se na Seção~\ref{sec:fase1_cbf}.
     \item \textbf{Comportamento sob Limitações / Fallback (Cold Start):} Resolvido nativamente por construção. Por apoiar-se exclusivamente na semântica do item e nas competências digitadas, basta que o usuário informe uma única palavra-chave (e.g., ``Python'') para que o sistema gere recomendações altamente aderentes, dispensando qualquer histórico prévio.
 \end{enumerate}
 
@@ -208,9 +189,8 @@ O fluxo de abas atual tem por objetivo atender perfis e níveis de profundidade 
 % ------------------------------------------------------------------------------
 \subsubsection{Aba 3: Filtragem Colaborativa}
 
-\begin{tcolorbox}[userstorybox, title={User Story Vinculada (Aba 3)}]
-\textit{``Como recrutador ou gestor da plataforma, quero aprender padrões implícitos de candidatura a partir do histórico coletivo, para sugerir oportunidades alinhadas ao comportamento de profissionais similares.''} (\textbf{Persona:} Recrutador / Plataforma).
-\end{tcolorbox}
+\noindent\textbf{User Story Vinculada:} US3 -- Filtragem Colaborativa e Perfil Latente (\textit{Persona: Recrutador / Plataforma}).
+Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us_fase2}.
 
 \begin{enumerate}[label=\textbf{\arabic*.}]
     \item \textbf{Objetivo:} Inspecionar o perfil latente implícito inferido a partir do comportamento do candidato e gerar recomendações de vagas baseadas no histórico coletivo de profissionais análogos, assegurando explicabilidade aditiva transparente.
@@ -221,22 +201,7 @@ O fluxo de abas atual tem por objetivo atender perfis e níveis de profundidade 
         \item \texttt{data/processed/interacoes.parquet}: Matriz esparsa contendo 602.216 notas (escala de 1 a 5) atribuídas por 5.000 personas sintéticas estruturadas.
     \end{itemize}
     \item \textbf{Cadeia de Processamento (Pipeline de Lógica):}
-    \begin{enumerate}[label=\alph*)]
-        \item Recuperação do vetor de fatores latentes do usuário ($p_u \in \mathbb{R}^{20}$), sua persona primária de afinidade e seu histórico verídico de treino;
-        \item Computação das notas estimadas para todos os anúncios não avaliados do catálogo por meio da formulação aditiva clássica do SVD:
-        \begin{equation}
-            \hat{y}_{u,i} = \mu + b_u + b_i + q_i^T p_u
-        \end{equation}
-        onde:
-        \begin{itemize}
-            \item $\mu = 3{,}230$: média global das avaliações na partição de treino;
-            \item $b_u \in \mathbb{R}$: viés característico do candidato $u$ (rigor ou benevolência sistemática na atribuição de notas);
-            \item $b_i \in \mathbb{R}$: viés intrínseco da vaga $i$ (popularidade ou atratividade geral frente a toda a base);
-            \item $q_i^T p_u$: produto interno dos fatores latentes ($k=20$), capturando a sinergia específica entre candidato e vaga.
-        \end{itemize}
-        \item Ordenação decrescente e corte no Top-$N$.
-        \item Explicabilidade analítica por meio da decomposição interativa das parcelas de viés e do casamento latente.
-    \end{enumerate}
+    Recuperação do vetor de fatores latentes do usuário ($p_u \in \mathbb{R}^{20}$) e predição das notas estimadas via formulação aditiva clássica do SVD ($\hat{y}_{u,i} = \mu + b_u + b_i + q_i^T p_u$), seguida de ordenação decrescente Top-$N$ e decomposição interativa de explicabilidade (gráfico Waterfall Altair). O detalhamento analítico, os hiperparâmetros e a formulação matemática completa encontram-se na Seção~\ref{sec:fase2_cf}.
 \end{enumerate}
 
 \begin{figure}[H]
@@ -283,9 +248,8 @@ O fluxo de abas atual tem por objetivo atender perfis e níveis de profundidade 
 % ------------------------------------------------------------------------------
 \subsubsection{Aba 4: Comparativo CBF $\times$ CF (Estado Atual nas Fases 1 e 2)}
 
-\begin{tcolorbox}[userstorybox, title={User Story Vinculada (Aba 4)}]
-\textit{``Como professora da disciplina, quero comparar as características e as métricas auditadas de CBF e CF lado a lado, para entender os prós, contras e viabilidade de cada abordagem.''} (\textbf{Persona:} Professora).
-\end{tcolorbox}
+\noindent\textbf{User Story Vinculada:} US5 -- Auditoria e Duelo de Modelos (\textit{Persona: Professora / Avaliador}).
+Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador}.
 
 \begin{enumerate}[label=\textbf{\arabic*.}]
     \item \textbf{Objetivo:} Estabelecer uma comparação analítica, teórica e metrológica rigorosa entre as abordagens de Filtragem Baseada em Conteúdo e Filtragem Colaborativa, fundamentando decisões de arquitetura de software sob evidências empíricas.
@@ -350,9 +314,8 @@ O fluxo de abas atual tem por objetivo atender perfis e níveis de profundidade 
 % ------------------------------------------------------------------------------
 \subsubsection{Fluxo 5: Como avaliamos \& limitações (Modo Avaliador / Professora)}
 
-\begin{tcolorbox}[userstorybox, title={User Story Vinculada (Fluxo 5)}]
-\textit{``Como professora, quero saber como cada número foi medido e quais limitações o time declara, para avaliar a engenharia sem precisar caçar informação.''} (\textbf{Persona:} Professora).
-\end{tcolorbox}
+\noindent\textbf{User Story Vinculada:} US5 -- Transparência, Governança e Limitações (\textit{Persona: Professora / Avaliador}).
+Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador}.
 
 \begin{enumerate}[label=\textbf{\arabic*.}]
     \item \textbf{Objetivo:} Expor a metodologia, o processo de validação e as fragilidades do sistema explicitamente na interface visual, a fim de superar a ocultação da tomada de decisão e limitações em arquivos de texto auxiliares.
@@ -381,26 +344,7 @@ O projeto passará a implementar futuramente a filtragem híbrida, criando assim
 
 \subsubsection{Estratégias de Hibridização (Taxonomia de Robin Burke)}
 
-Para neutralizar a propensão à hipersensibilidade do CBF e a vulnerabilidade ao \textit{cold start} do CF, adota-se a conjugação de duas técnicas clássicas propostas por Robin Burke \cite{burke2002}:
-
-\begin{tcolorbox}[burkebox, title={Concepção Matemática da Filtragem Híbrida}]
-\textbf{1. Estratégia Ponderada (\textit{Weighted}):}
-\begin{equation}
-    \text{Score Híbrido}_{u,j} = w_1 \cdot \text{Score}_{\text{CBF}}^{\text{norm}}(u, j) + w_2 \cdot \text{Score}_{\text{CF}}^{\text{norm}}(u, j)
-\end{equation}
-onde os escores semântico e colaborativo são normalizados para o intervalo comum $[0, 1]$ e submetidos à calibração paramétrica ponderada (e.g., $w_1 = 0{,}40$ para relevância de competências e $w_2 = 0{,}60$ para atratividade comportamental coletiva).
-
-\vspace{0.25cm}
-\textbf{2. Estratégia de Chaveamento para Cold Start (\textit{Switching}):}
-\begin{equation}
-    \text{Regime de Operação}(u) = 
-    \begin{cases} 
-        \text{CBF (Conteúdo Exclusivo)}, & \text{se } |I_u| = 0 \text{ (Usuário Novo)}, \\
-        \text{Fusão Ponderada (CBF} + \text{CF)}, & \text{se } |I_u| \ge 1 \text{ (Usuário Ativo)},
-    \end{cases}
-\end{equation}
-onde $|I_u|$ quantifica o total de interações históricas acumuladas pelo usuário $u$.
-\end{tcolorbox}
+Para neutralizar a propensão à hipersensibilidade do CBF e a vulnerabilidade ao \textit{cold start} do CF, adota-se a conjugação de duas técnicas clássicas propostas por Robin Burke \cite{burke2002}: fusão linear ponderada (\textit{Weighted}, com pesos empíricos $w_1 = 0{,}40$ e $w_2 = 0{,}60$) sobre escores previamente normalizados e chaveamento dinâmico de regime (\textit{Switching}) para segregar novos usuários ($|I_u| = 0$). O equacionamento matemático formal e a formulação analítica completa encontram-se detalhados na Seção~\ref{sec:fase3_hibrido}.
 
 \subsubsection{Diagrama do Fluxo da Arquitetura Alvo Híbrida (Fase 3)}
 
