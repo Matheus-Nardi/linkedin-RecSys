@@ -16,7 +16,7 @@ Este capítulo formaliza a visão de produto e os requisitos de negócio sob a p
 % 4.1 FASE 1: VISÃO DE MERCADO
 % Autor: Alêkson Castro (Issue #4)
 % ------------------------------------------------------------------------------
-\subsection{User Story 1: Visão de Mercado (Fase 1)}
+\subsection{User Story 1 (Fase 1): Visão de Mercado e Análise Exploratória}
 \label{sec:us1_mercado}
 
 % [PLACEHOLDER - ALÊKSON: Redigir a US1 em padrão BDD sintético]
@@ -28,7 +28,7 @@ Este capítulo formaliza a visão de produto e os requisitos de negócio sob a p
 % 4.2 FASE 1: CBF E COLD START
 % Autor: Alêkson Castro (Issue #4)
 % ------------------------------------------------------------------------------
-\subsection{User Story 2: Filtragem por Conteúdo e Cold Start (Fase 1)}
+\subsection{User Story 2 (Fase 1): Filtragem por Conteúdo e Cold Start}
 \label{sec:us2_cold_start}
 
 % [PLACEHOLDER - ALÊKSON: Redigir a US2 em padrão BDD sintético]
@@ -37,34 +37,46 @@ Este capítulo formaliza a visão de produto e os requisitos de negócio sob a p
 \noindent\textit{[Espaço reservado para a User Story 2 por Alêkson Castro -- Issue \#4. Foco no cold start e nos cenários BDD da busca por competências.]}
 
 % ------------------------------------------------------------------------------
-% 4.3 FASE 2: FILTRAGEM COLABORATIVA E EXPLICABILIDADE
+% 4.3 FASE 2: FILTRAGEM COLABORATIVA E PERFIL LATENTE
 % Autor: Italo Emannuel Beckman (Issue #6)
 % ------------------------------------------------------------------------------
-\subsection{Fase 2: Filtragem Colaborativa e Explicabilidade (US3 e US4)}
+\subsection{User Story 3 (Fase 2): Recrutamento por Afinidade Latente}
+\label{sec:us3_recrutador}
 \label{sec:us_fase2}
 
-% [PLACEHOLDER - ITALO: Redigir US3 e US4 em padrão BDD sintético]
+% [PLACEHOLDER - ITALO: Redigir US3 em padrão BDD sintético]
 % - US3 (Recrutador / Perfil latente): Declaração oficial + Cenários BDD de persona e catálogo sem repetição;
+% - Referenciar a Seção 2 (\ref{fig:fluxo_aba3}) para detalhes de tela.
+\noindent\textit{[Espaço reservado para a User Story 3 por Italo Beckman -- Issue \#6. Foco no perfil latente e cenários BDD de recomendação colaborativa.]}
+
+% ------------------------------------------------------------------------------
+% 4.4 FASE 2: EXPLICABILIDADE E TRANSPARÊNCIA
+% Autor: Italo Emannuel Beckman (Issue #6)
+% ------------------------------------------------------------------------------
+\subsection{User Story 4 (Fase 2): Explicabilidade Aditiva e Transparência}
+\label{sec:us4_explicabilidade}
+
+% [PLACEHOLDER - ITALO: Redigir US4 em padrão BDD sintético]
 % - US4 (Explicabilidade / Waterfall): Declaração oficial + Cenários BDD do gráfico Waterfall Altair;
 % - Referenciar a Seção 2 (\ref{fig:fluxo_aba3}) para detalhes de tela.
-\noindent\textit{[Espaço reservado para as User Stories 3 e 4 por Italo Beckman -- Issue \#6. Foco na transparência da IA e cenários BDD da CF.]}
+\noindent\textit{[Espaço reservado para a User Story 4 por Italo Beckman -- Issue \#6. Foco na transparência da IA e cenários BDD do gráfico Waterfall.]}
 
 % ==============================================================================
-% 4.4 USER STORY - FASE 3 (O AVALIADOR DO PROJETO)
+% 4.5 USER STORY - FASE 3 (O AVALIADOR DO PROJETO)
 % Autor: Matheus Alexandre Nardi (Issue #8)
 % Finalidade: Formalização da US5 no padrão BDD e consolidação da Matriz Geral
 % ==============================================================================
 
-\subsection{Fase 3: O Avaliador do Projeto (US5)}
+\subsection{User Story 5 (Fase 3): Auditoria Comparativa pelo Avaliador}
 \label{sec:us5_avaliador}
 
-Enquanto as histórias anteriores abordam a experiência operacional do candidato e da plataforma de recrutamento, a quinta História de Usuário atende à perspectiva do \textbf{Avaliador do Projeto} (representado pela Professora da disciplina e pela banca examinadora). Sob a ótica do TDSP (\textit{Team Data Science Process}), o papel do avaliador técnico consiste em auditar o rigor estatístico das métricas reportadas, inspecionar a conformidade metodológica e julgar se a complexidade de engenharia da arquitetura híbrida se justifica frente a modelos puros e pisos teóricos de ruído.
+Enquanto as histórias anteriores abordam a experiência operacional do candidato e da plataforma de recrutamento, a quinta História de Usuário atende à perspectiva do \textbf{Avaliador do Projeto} (representado pela Professora da disciplina). Sob a ótica do TDSP (\textit{Team Data Science Process}), o papel do avaliador técnico consiste em auditar o rigor estatístico das métricas reportadas, inspecionar a conformidade metodológica e julgar se a complexidade de engenharia da arquitetura híbrida se justifica frente a modelos puros e pisos teóricos de ruído.
 
-\begin{tcolorbox}[colback=blue!5!white, colframe=blue!75!black, title={\textbf{User Story 5 (Obrigatória pelo Roteiro da Disciplina)}}]
-\textit{``Como avaliador do projeto, quero comparar as três técnicas lado a lado com métricas reais e inspecionar a metodologia de testes, para julgar se a complexidade da hibridização se justificou perante baselines e pisos teóricos.''}
+\begin{tcolorbox}[colback=blue!5!white, colframe=blue!75!black, title={\textbf{User Story 5}}]
+\textit{``Como avaliador do projeto, quero comparar as três técnicas lado a lado com métricas reais, para julgar se a hibridização realmente compensou o esforço.''}
 \vspace{0.15cm}
 \tcblower
-\textbf{Persona:} Professora da Disciplina / Avaliador Técnico de Sistemas de Recomendação.\\
+\textbf{Persona:} Professora da Disciplina \\
 \textbf{Dor Central de Negócio:} Vulnerabilidade a modelos que funcionam como ``caixas-pretas'', relatórios sem significância estatística comprovada ou soluções superengenheiradas cujos ganhos preditivos não compensam o custo operacional em produção.
 \end{tcolorbox}
 

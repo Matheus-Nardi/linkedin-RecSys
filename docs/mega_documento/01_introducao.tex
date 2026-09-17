@@ -1,5 +1,6 @@
 
 \section{Introdução}
+\label{sec:introducao}
 
 % ==============================================================================
 % 1. CONTEXTUALIZAÇÃO E OBJETIVO DO PROJETO
@@ -36,4 +37,91 @@ A base primária selecionada para a condução do projeto é o \textit{LinkedIn 
 % ==============================================================================
 \subsection{Organização do Documento}
 
-Este trabalho está estruturado da seguinte forma: inicialmente, a Seção~2 apresenta a Arquitetura Alvo e a especificação técnica do fluxo por aba sob a ótica do TDSP, contemplando o mapeamento das etapas atuais e o planejamento da evolução híbrida. Posteriormente, são detalhadas as formulações matemáticas e os pipelines práticos dos modelos de Filtragem Baseada em Conteúdo e Filtragem Colaborativa. Em seguida, são expostos os protocolos experimentais, os resultados comparativos auditados e a análise estatística frente a baselines e limites de ruído. Por fim, consolidam-se as considerações finais, lições aprendidas e os direcionamentos futuros da solução.
+Para além de uma divisão meramente capitular, este relatório foi estruturado segundo uma lógica sequencial de dependências metodológicas sob o processo TDSP (\textit{Team Data Science Process}). O trabalho organiza-se em seis seções interdependentes, nas quais cada componente responde às demandas do anterior e fundamenta os subsequentes:
+
+\begin{enumerate}[label=\textbf{Seção \arabic*:}, leftmargin=2.2em, itemsep=2pt]
+    \item \textbf{Problema, Dataset e Governança TDSP:} Delimita o problema de recomendação no ecossistema LinkedIn, explora o catálogo e estabelece os papéis da equipe;
+    \item \textbf{Arquitetura Alvo e Fluxo por Aba:} Viabiliza a engenharia de software, mapeando entradas, processamento e saídas de cada fluxo do sistema;
+    \item \textbf{Modelagem e Experimentos Algorítmicos:} Alimenta a arquitetura com o ferramental científico (EDA empírica, CBF vetorial, CF por fatores latentes SVD e hibridização);
+    \item \textbf{User Stories e Rastreabilidade BDD:} Valida os modelos pela ótica de negócio, formalizando personas e critérios objetivos de aceitação;
+    \item \textbf{Riscos Técnicos e Governança LGPD:} Protege o sistema contra fragilidades intrínsecas (\textit{cold start}, esparsidade extrema) e assegura conformidade regulatória estrita;
+    \item \textbf{Critérios de Aceite e Homologação Final:} Homologa formalmente a entrega por meio de auditoria empírica de métricas frente a baselines e pisos de ruído.
+\end{enumerate}
+
+A Figura~\ref{fig:fio_leitura} ilustra o encadeamento lógico e as relações de dependência técnica entre as seções do relatório.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.98\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.4cm and 1.4cm,
+    actbox/.style={
+        draw=blue!75!black,
+        rounded corners=3pt,
+        fill=blue!4!white,
+        font=\small,
+        align=center,
+        inner sep=6pt,
+        text width=4.3cm,
+        minimum height=1.3cm,
+        line width=0.8pt
+    },
+    translabel/.style={
+        font=\scriptsize\bfseries,
+        text=blue!90!black,
+        fill=white,
+        inner sep=2pt,
+        rounded corners=2pt,
+        draw=blue!30!white,
+        line width=0.4pt
+    },
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=blue!80!black}
+]
+
+% Linha 1: Seções 1 a 3
+\node[actbox] (sec1) {
+    \textbf{Seção 1}\\[2pt]
+    Problema \& TDSP
+};
+
+\node[actbox, right=1.6cm of sec1] (sec2) {
+    \textbf{Seção 2}\\[2pt]
+    Arquitetura Alvo
+};
+
+\node[actbox, right=1.6cm of sec2] (sec3) {
+    \textbf{Seção 3}\\[2pt]
+    Modelagem \& ML
+};
+
+% Linha 2: Seções 4 a 6
+\node[actbox, below=1.4cm of sec1] (sec4) {
+    \textbf{Seção 4}\\[2pt]
+    User Stories (BDD)
+};
+
+\node[actbox, right=1.6cm of sec4] (sec5) {
+    \textbf{Seção 5}\\[2pt]
+    Riscos \& LGPD
+};
+
+\node[actbox, right=1.6cm of sec5] (sec6) {
+    \textbf{Seção 6}\\[2pt]
+    Critérios de Aceite
+};
+
+% Conexões Horizontais
+\draw[arrow] (sec1) -- node[translabel, above] {viabilizado por} (sec2);
+\draw[arrow] (sec2) -- node[translabel, above] {alimentada por} (sec3);
+
+\draw[arrow] (sec4) -- node[translabel, above] {protegida de} (sec5);
+\draw[arrow] (sec5) -- node[translabel, above] {homologada por} (sec6);
+
+% Conexão entre Linha 1 e Linha 2 (Seção 3 -> Seção 4)
+\draw[arrow, rounded corners=6pt] (sec3.south) -- ++(0,-0.6) -| node[pos=0.25, translabel] {validada por} (sec4.north);
+
+\end{tikzpicture}%
+}
+\caption{Diagrama de encadeamento lógico e fluxo de dependências metodológicas entre as seções do documento.}
+\label{fig:fio_leitura}
+\end{figure}

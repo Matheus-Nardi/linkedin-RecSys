@@ -2,18 +2,18 @@
 \label{sec:arquitetura_alvo}
 
 % ==============================================================================
-% 1. ETAPA 1: O QUE É O FLUXO POR ABA NA ARQUITETURA ALVO
+% 1. CONCEITUAÇÃO E PROPÓSITO DO FLUXO POR ABA
 % ==============================================================================
-\subsection{Etapa 1: O que é o ``Fluxo por Aba'' na Arquitetura Alvo?}
+\subsection{Conceituação e Propósito do Fluxo por Aba}
 
 Dentro da metodologia TDSP (\textit{Team Data Science Process}), o ``Fluxo por Aba'' representa o desenho formal da engenharia de dados e software subjacente a cada funcionalidade, delimitando a jornada integral percorrida pela informação e detalhando a entrada, o processamento e a saída do sistema.
 
 O objetivo dessa etapa reside em assegurar a sustentabilidade, auditabilidade e manutenibilidade do sistema (\textit{legacy system management}). O detalhamento garante que qualquer cientista de dados, engenheiro de Machine Learning, compreenda de imediato a finalidade de cada aba e como os dados trafegam pela arquitetura.
 
 % ==============================================================================
-% 2. ETAPA 2: O QUE CADA FLUXO PRECISA CONTER (ESTRUTURA PADRÃO)
+% 2. ESTRUTURA PADRÃO DE ESPECIFICAÇÃO DOS FLUXOS
 % ==============================================================================
-\subsection{Etapa 2: O que cada Fluxo precisa conter? (Estrutura Padrão)}
+\subsection{Estrutura Padrão de Especificação dos Fluxos}
 
 Para assegurar consistência metodológica, homogeneidade na documentação e facilidade de sustentação técnica, cada aba documentada na Arquitetura Alvo obedece a 5 componentes obrigatórios:
 
@@ -26,9 +26,9 @@ Para assegurar consistência metodológica, homogeneidade na documentação e fa
 \end{enumerate}
 
 % ==============================================================================
-% 3. ETAPA 3: MAPEAMENTO DOS FLUXOS ATUAIS (FASES 1 E 2)
+% 3. MAPEAMENTO ARQUITETURAL DAS ABAS EM PRODUÇÃO (FASES 1 E 2)
 % ==============================================================================
-\subsection{Etapa 3: Mapeamento dos Fluxos Atuais (Fases 1 e 2)}
+\subsection{Mapeamento Arquitetural das Abas em Produção (Fases 1 e 2)}
 
 Apresenta-se a seguir a especificação técnica dos fluxos integrados na interface do painel interativo da aplicação. 
 
@@ -187,10 +187,10 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us2_cold_star
 % ------------------------------------------------------------------------------
 % 3.3 ABA 3: FILTRAGEM COLABORATIVA (SVD)
 % ------------------------------------------------------------------------------
-\subsubsection{Aba 3: Filtragem Colaborativa}
+\subsubsection{Aba 3: Filtragem Colaborativa (SVD Latente)}
 
 \noindent\textbf{User Story Vinculada:} US3 -- Filtragem Colaborativa e Perfil Latente (\textit{Persona: Recrutador / Plataforma}).
-Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us_fase2}.
+Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us3_recrutador}.
 
 \begin{enumerate}[label=\textbf{\arabic*.}]
     \item \textbf{Objetivo:} Inspecionar o perfil latente implícito inferido a partir do comportamento do candidato e gerar recomendações de vagas baseadas no histórico coletivo de profissionais análogos, assegurando explicabilidade aditiva transparente.
@@ -246,7 +246,7 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us_fase2}.
 % ------------------------------------------------------------------------------
 % 3.4 ABA 4: COMPARATIVO CBF X CF
 % ------------------------------------------------------------------------------
-\subsubsection{Aba 4: Comparativo CBF $\times$ CF (Estado Atual nas Fases 1 e 2)}
+\subsubsection{Aba 4: Comparativo CBF $\times$ CF e Duelo de Modelos}
 
 \noindent\textbf{User Story Vinculada:} US5 -- Auditoria e Duelo de Modelos (\textit{Persona: Professora / Avaliador}).
 Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador}.
@@ -310,9 +310,9 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador
 \end{figure}
 
 % ------------------------------------------------------------------------------
-% 3.5 FLUXO 5: COMO AVALIAMOS & LIMITAÇÕES
+% 3.5 ABA 5: AVALIAÇÃO METODOLÓGICA, GOVERNANÇA E LIMITAÇÕES
 % ------------------------------------------------------------------------------
-\subsubsection{Fluxo 5: Como avaliamos \& limitações (Modo Avaliador / Professora)}
+\subsubsection{Aba 5: Avaliação Metodológica, Governança e Limitações}
 
 \noindent\textbf{User Story Vinculada:} US5 -- Transparência, Governança e Limitações (\textit{Persona: Professora / Avaliador}).
 Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador}.
@@ -336,9 +336,9 @@ Declaração formal e critérios de aceite BDD na Seção~\ref{sec:us5_avaliador
 \end{enumerate}
 
 % ==============================================================================
-% 4. ETAPA 4: EVOLUÇÃO PARA A FILTRAGEM HÍBRIDA (FASE 3)
+% 4. EVOLUÇÃO ARQUITETURAL PARA A FILTRAGEM HÍBRIDA (FASE 3)
 % ==============================================================================
-\subsection{Etapa 4: Evolução para a Filtragem Híbrida (Fase 3)}
+\subsection{Evolução Arquitetural para a Filtragem Híbrida (Fase 3)}
 
 O projeto passará a implementar futuramente a filtragem híbrida, criando assim uma nova aba para análise dessa abordagem.
 
