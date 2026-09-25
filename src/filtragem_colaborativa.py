@@ -283,6 +283,12 @@ def carregar_metricas(data_dir="data/processed"):
         if "gerado_em" in cbf:
             cbf["gerado_em_cbf"] = cbf.pop("gerado_em")
         metricas.update(cbf)
+    caminho_hibrido = os.path.join(data_dir, "metadados_hibrido.pkl")
+    if os.path.exists(caminho_hibrido):
+        hibrido = joblib.load(caminho_hibrido)
+        if "gerado_em" in hibrido:
+            hibrido["gerado_em_hibrido"] = hibrido.pop("gerado_em")
+        metricas.update(hibrido)
     return metricas
 
 
