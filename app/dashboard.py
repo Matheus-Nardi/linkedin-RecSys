@@ -76,9 +76,6 @@ COR_AZUL = "#4C72B0"
 COR_VERDE = "#55A868"
 COR_LARANJA = "#DD8452"
 
-st.title(":material/recommend: Sistema de Recomendação de Vagas (CBF + CF)")
-st.write("Disciplina: Tópicos em Sistemas de Recomendação | Autor: Matheus N.")
-
 # --- COMPONENTE "CARD DE VAGA" (estilo LinkedIn) — feeds CBF e CF ---
 MAPA_NIVEL_PT = {
     "Internship": "Estágio",
@@ -602,9 +599,9 @@ def pagina_comece_aqui():
 
     st.subheader(":material/route: Por onde começar")
     col_p1, col_p2, col_p3 = st.columns(3)
-    col_p1.page_link("/perfil", label="Montar meu perfil", icon=":material/tune:")
-    col_p2.page_link("/sistema", label="Ver o sistema aprendendo", icon=":material/group:")
-    col_p3.page_link("/duelo", label="Julgar as métricas", icon=":material/balance:")
+    col_p1.page_link(page_cbf, label="Montar meu perfil", icon=":material/tune:")
+    col_p2.page_link(page_cf, label="Ver o sistema aprendendo", icon=":material/group:")
+    col_p3.page_link(page_duelo, label="Julgar as métricas", icon=":material/balance:")
 
 
 # --- PÁGINA 1: DATASET & HIPÓTESES (EDA) ---
@@ -632,9 +629,9 @@ def pagina_dataset_hipoteses():
     )
 
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Vagas no dataset (X)", f"{total_vagas:,}")
+    col1.metric("Vagas no dataset (total)", f"{total_vagas:,}")
     col2.metric(
-        "Carregadas p/ processamento (Y)",
+        "Amostra CBF (processamento)",
         f"{len(df_amostra):,}",
         help=f"{pct_amostra:.1f}% do total — amostragem aleatória reprodutível "
         "(random_state=42) para o TF-IDF do CBF.",
@@ -1207,22 +1204,22 @@ def _explicacao_cf(exp):
     if dom == "match":
         pos = exp["match_latente"] >= 0
         return (
-            "Pessoas com DNA parecido com o deste perfil "
-            + ("avaliaram bem" if pos else "avaliaram mal")
-            + " esta vaga (afinidade latente)."
+            "Candidatos com perfil latente similar a este "
+            + ("avaliaram favoravelmente" if pos else "avaliaram desfavoravelmente")
+            + " esta vaga (afinidade latente q_iᵀp_u)."
         )
     if dom == "b_i":
         pos = exp["b_i"] >= 0
         return (
             "Esta vaga "
-            + ("é bem avaliada por todo mundo" if pos else "é mal avaliada em geral")
-            + " (viés da vaga)."
+            + ("possui alta atratividade geral no catálogo" if pos else "possui baixa atratividade geral no catálogo")
+            + " (viés da vaga b_i)."
         )
     pos = exp["b_u"] >= 0
     return (
-        "Este perfil "
-        + ("tende a avaliar bem as vagas" if pos else "tende a avaliar mal as vagas")
-        + " (viés do usuário)."
+        "Este candidato "
+        + ("tende a avaliar posições com maior rigor" if not pos else "tende a avaliar posições com benevolência")
+        + " (viés do usuário b_u)."
     )
 
 
@@ -1400,7 +1397,7 @@ def pagina_cf():
             st.rerun()
 
     st.markdown("---")
-    st.subheader(":material.query_stats: Por que esta nota? (água do score SVD)")
+    st.subheader(":material/query_stats: Por que esta nota? (Decomposição Aditiva do Score SVD)")
     _exp_ok = []
     for _, row in recs_cf.iterrows():
         _e = rec_cf.explicar_recomendacao(user_id, row["job_id"])
@@ -1446,7 +1443,7 @@ def pagina_cf():
         )
         col_w1, col_w2 = st.columns([0.60, 0.40])
         with col_w1:
-            st.altair_chart(grafico_wf, use_container_width=True)
+            st.altair_chart(grafico_wf, width="stretch")
         with col_w2:
             st.markdown(
                 "**" + escolha + "**\n\n"
@@ -1483,8 +1480,8 @@ def pagina_comparativo():
     | :--- | :--- | :--- | :--- |
     | **Sinal usado** | Conteúdo da vaga (título, skills, nível) | Padrões de comportamento (notas de usuários parecidos) | Combinação linear de escores normalizados |
     | **Perfil do usuário** | Vetor TF-IDF construído na hora (curtidas + skills) | Fatores latentes p_u aprendidos do histórico | Dinâmico: TF-IDF na largada → fatores latentes |
-    | **Modelo** | Similaridade cosseno + bônus CTR | SVD (ŷ = μ + b_u + b_i + q_iᵀp_u) | Weighted (0,4 CBF + 0,6 SVD) + Switching (|I_u| < 5) |
-    | **Cold start (|I_u| < 5)** | :material/check: Forte (usa o texto da vaga) | :material/close: Fraco (precisa de interações) | :material/check: Imune (chaveia para CBF pura) |
+    | **Modelo** | Similaridade cosseno + bônus CTR | SVD (ŷ = μ + b_u + b_i + q_iᵀp_u) | Weighted (0,4 CBF + 0,6 SVD) + Switching (N < 5) |
+    | **Cold start (usuário novo, N < 5)** | :material/check: Forte (usa o texto da vaga) | :material/close: Fraco (precisa de interações) | :material/check: Imune (chaveia para CBF pura) |
     | **Serendipidade** | Baixa (recomenda parecido com o que curtiu) | :material/check: Maior (descobre afinidades não óbvias) | :material/check: Alta (preserva a exploração latente do SVD) |
     """)
 
@@ -1642,7 +1639,7 @@ def pagina_limitacoes():
             linhas_prov.append({"Artefato": nome, "Gerado por": fonte, "Última execução": quando})
     st.dataframe(pd.DataFrame(linhas_prov), width="stretch", hide_index=True)
 
-    st.subheader(":material.privacy_tip: 2. Por que os dados de notas são sintéticos")
+    st.subheader(":material/privacy_tip: 2. Por que os dados de notas são sintéticos")
     st.markdown(
         "As **vagas são reais** (123.849 anúncios públicos do LinkedIn). Já as **notas "
         "1–5 de usuários não existem** no dataset — e coletá-las de pessoas reais violaria "
@@ -1651,7 +1648,7 @@ def pagina_limitacoes():
         "real: ela é a âncora de realidade do projeto."
     )
 
-    st.subheader(":material.warning: 3. O que Precision@10 = 1,00 significa (e o que NÃO significa)")
+    st.subheader(":material/warning: 3. O que Precision@10 = 1,00 significa (e o que NÃO significa)")
     def _f3(v):
         return "—" if v is None else f"{v:.3f}"
     st.markdown(
@@ -1671,7 +1668,7 @@ def pagina_limitacoes():
         f"| Aleatório | {_f3(metricas.get('precision_at_10_aleatorio'))} | {_f3(metricas.get('ndcg_at_10_aleatorio'))} |"
     )
 
-    st.subheader(":material.speed: 4. Piso de ruído — a régua honesta do RMSE")
+    st.subheader(":material/speed: 4. Piso de ruído — a régua honesta do RMSE")
     if metricas.get("rmse_oraculo") is not None:
         razao = metricas["rmse_svd"] / metricas["rmse_oraculo"]
         st.markdown(
@@ -1684,7 +1681,7 @@ def pagina_limitacoes():
             "argumento de defesa."
         )
 
-    st.subheader(":material.rule: 5. Baselines, significância e escolhas de protocolo")
+    st.subheader(":material/rule: 5. Baselines, significância e escolhas de protocolo")
     p_wil = metricas.get("p_wilcoxon_svd_vs_knn")
     if p_wil is None:
         p_wil_txt = "não disponível neste artefato."
@@ -1704,7 +1701,7 @@ def pagina_limitacoes():
         "120 mil pontos de teste o viés é desprezível (erro padrão ~0,004), mas fica declarado."
     )
 
-    st.subheader(":material.monitor_heart: 6. Limitações abertas (declaradas, não escondidas)")
+    st.subheader(":material/monitor_heart: 6. Limitações abertas (declaradas, não escondidas)")
     st.markdown(
         "1. **Avaliação self-fulfilling** (item 3) — a comparação absoluta só vale dentro "
         "do simulador; a relativa (ranking entre modelos) é o resultado publicável.\n"
@@ -1722,24 +1719,41 @@ def pagina_limitacoes():
 
 
 # --- NAVEGAÇÃO (DOIS MODOS) ---
+page_comece_aqui = st.Page(
+    pagina_comece_aqui, title="Comece aqui", icon=":material/home:",
+    url_path="comece-aqui", default=True
+)
+page_mercado = st.Page(
+    pagina_dataset_hipoteses, title="O mercado de vagas (EDA)",
+    icon=":material/analytics:", url_path="mercado"
+)
+page_cbf = st.Page(
+    pagina_cbf, title="Monte seu perfil (CBF)",
+    icon=":material/tune:", url_path="perfil"
+)
+page_cf = st.Page(
+    pagina_cf, title="O sistema aprende (CF)",
+    icon=":material/group:", url_path="sistema"
+)
+page_duelo = st.Page(
+    pagina_comparativo, title="Duelo dos modelos",
+    icon=":material/balance:", url_path="duelo"
+)
+page_limitacoes = st.Page(
+    pagina_limitacoes, title="Como avaliamos & limitações",
+    icon=":material/science:", url_path="limitacoes"
+)
+
 PAGINAS = {
-    "🏠 Início": [
-        st.Page(pagina_comece_aqui, title="Comece aqui", icon=":material/home:",
-                url_path="comece-aqui", default=True),
-    ],
+    "🏠 Início": [page_comece_aqui],
     "🧑‍💼 Modo Candidato — experimente o sistema": [
-        st.Page(pagina_dataset_hipoteses, title="O mercado de vagas (EDA)",
-                icon=":material/analytics:", url_path="mercado"),
-        st.Page(pagina_cbf, title="Monte seu perfil (CBF)",
-                icon=":material/tune:", url_path="perfil"),
-        st.Page(pagina_cf, title="O sistema aprende (CF)",
-                icon=":material/group:", url_path="sistema"),
+        page_mercado,
+        page_cbf,
+        page_cf,
     ],
     "🔬 Modo Avaliador — julgue a engenharia": [
-        st.Page(pagina_comparativo, title="Duelo dos modelos",
-                icon=":material/balance:", url_path="duelo"),
-        st.Page(pagina_limitacoes, title="Como avaliamos & limitações",
-                icon=":material/science:", url_path="limitacoes"),
+        page_duelo,
+        page_limitacoes,
     ],
 }
 
@@ -1747,10 +1761,11 @@ _pg = st.navigation(PAGINAS)
 
 with st.sidebar:
     st.markdown("## :material/work: RecSys Vagas")
-    st.caption("Vagas LinkedIn · CBF + CF")
+    st.caption("Vagas LinkedIn · CBF + CF + Híbrido")
     st.divider()
     st.caption(
-        "Disciplina: Tópicos em Sistemas de Recomendação (UNITINS)  \nAutor: Matheus N."
+        "Disciplina: Tópicos em Sistemas de Recomendação (UNITINS)  \n"
+        "Equipe: Alêkson C., Danilo B., Gustavo O., Ítalo B., Matheus N."
     )
 
 _pg.run()
